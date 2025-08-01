@@ -12,6 +12,9 @@
     <script src="languages.js"></script>
     <script src="turn-system.js"></script>
     <script src="test-turn-system.js"></script>
+    <script src="game-core.js"></script>
+    <script src="ui-display.js"></script>
+    <script src="app-init.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -279,10 +282,8 @@
             </div>
         </div>
     </div>
-
-    <script>
-
-        // Initialize app when DOM is ready
+</body>
+</html>
         function initializeApp() {
             // --- DOM ELEMENTS ---
         const sessionView = document.getElementById('session-view');
@@ -1284,6 +1285,6 @@
         } else {
             initializeApp();
         }
-    </script>
+
 </body>
 </html> 
