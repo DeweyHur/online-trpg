@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multiplayer TRPG - Server Gateway</title>
+    <title>Multiplayer TRPG - Static</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
+        /* Custom modal confirm */
         .confirm-modal-backdrop {
             position: fixed;
             inset: 0;
@@ -20,7 +22,7 @@
             z-index: 50;
         }
         .confirm-modal {
-            background-color: #1F2937;
+            background-color: #1F2937; /* bg-gray-800 */
             padding: 2rem;
             border-radius: 0.5rem;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -32,11 +34,7 @@
 <body class="bg-gray-900 text-white">
 
     <div id="app" class="container mx-auto p-4 md:p-8">
-        <!-- Server Gateway Notice -->
-        <div class="max-w-lg mx-auto mb-6 bg-green-900 p-4 rounded-lg shadow-lg">
-            <h2 class="text-lg font-semibold text-green-200 mb-2">🔧 Server Gateway Mode</h2>
-            <p class="text-sm text-green-100">This app uses the development server as a backend gateway. No client-side Supabase configuration needed!</p>
-        </div>
+        <!-- Main container for the app -->
 
         <!-- Session Creation / Joining View -->
         <div id="session-view" class="max-w-lg mx-auto bg-gray-800 p-8 rounded-lg shadow-lg">
@@ -97,6 +95,16 @@
     </div>
 
     <script>
+        // ========================================
+        // REPLACE THESE WITH YOUR ACTUAL VALUES
+        // ========================================
+        const SUPABASE_URL = 'https://your-project-id.supabase.co';
+        const SUPABASE_ANON_KEY = 'your-anon-key-here';
+        // ========================================
+        
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         // --- DOM ELEMENTS ---
         const sessionView = document.getElementById('session-view');
         const gameView = document.getElementById('game-view');
@@ -115,43 +123,76 @@
         let userId = null;
         let characterName = null;
         let chatHistory = [];
-        let currentSession = null;
-        let pollInterval = null;
+        let sessionSubscription = null;
 
-        // --- SERVER API FUNCTIONS ---
-        async function apiCall(endpoint, method = 'GET', data = null) {
-            const options = {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
+        // --- AUTHENTICATION ---
+        async function initializeAuth() {
+            try {
+                // Get or create anonymous user
+                const { data: { user }, error } = await supabase.auth.getUser();
+                
+                if (error || !user) {
+                    // Create anonymous user
+                    const { data, error: signUpError } = await supabase.auth.signUp({
+                        email: `anonymous_${Date.now()}@example.com`,
+                        password: `password_${Date.now()}`,
+                    });
+                    
+                    if (signUpError) {
+                        console.error('Auth error:', signUpError);
+                        displayMessage({ text: `Authentication failed: ${signUpError.message}`, type: 'error' });
+                        return;
+                    }
+                    
+                    userId = data.user.id;
+                } else {
+                    userId = user.id;
                 }
-            };
-            
-            if (data) {
-                options.body = JSON.stringify(data);
+                
+                console.log('Authenticated user:', userId);
+            } catch (error) {
+                console.error('Auth initialization error:', error);
+                displayMessage({ text: `Authentication failed: ${error.message}`, type: 'error' });
             }
-
-            const response = await fetch(`/api${endpoint}`, options);
-            const result = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(result.error || 'API call failed');
-            }
-            
-            return result;
         }
 
+        // --- GEMINI API ---
         async function callGemini(prompt, apiKey) {
             displayMessage({ text: 'GM is thinking...', type: 'system' });
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
             
+            // Sanitize chat history for the API call
+            const apiChatHistory = chatHistory.map(({ role, parts }) => ({ role, parts }));
+
+            const requestBody = {
+                contents: [...apiChatHistory, { role: "user", parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0.7,
+                    topK: 1,
+                    topP: 1,
+                    maxOutputTokens: 8192,
+                },
+            };
+
             try {
-                const result = await apiCall('/gemini', 'POST', {
-                    prompt,
-                    apiKey,
-                    chatHistory: chatHistory.map(({ role, parts }) => ({ role, parts }))
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
                 });
-                
-                return result.response;
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error.message || `HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    return text;
+                }
+                throw new Error("No content generated.");
+
             } catch (error) {
                 console.error("Gemini API Error:", error);
                 displayMessage({ text: `GM Error: ${error.message}`, type: 'error' });
@@ -159,25 +200,8 @@
             }
         }
 
-        async function createSession(geminiApiKey, startingPrompt) {
-            const result = await apiCall('/sessions', 'POST', {
-                geminiApiKey,
-                startingPrompt
-            });
-            return result.session;
-        }
-
-        async function getSession(sessionId) {
-            const result = await apiCall(`/sessions/${sessionId}`);
-            return result.session;
-        }
-
-        async function updateSession(sessionId, updateData) {
-            const result = await apiCall(`/sessions/${sessionId}`, 'PUT', updateData);
-            return result.session;
-        }
-
         // --- UI & GAME LOGIC ---
+
         function displayMessage({ text, type, author = 'GM' }) {
             const messageEl = document.createElement('div');
             messageEl.classList.add('mb-4');
@@ -201,7 +225,7 @@
                     textColor = 'text-red-200';
                     authorPrefix = `<strong>[ERROR]</strong>: `;
                     break;
-                case 'gm':
+                case 'gm': // Explicitly handle GM messages
                     bgColor = 'bg-gray-700';
                     textColor = 'text-indigo-200';
                     break;
@@ -263,12 +287,11 @@
         }
 
         function switchToSessionView() {
-            if (pollInterval) {
-                clearInterval(pollInterval);
-                pollInterval = null;
+            if (sessionSubscription) {
+                sessionSubscription.unsubscribe();
+                sessionSubscription = null;
             }
             currentSessionId = null;
-            currentSession = null;
             characterName = null;
             chatHistory = [];
             chatLog.innerHTML = '';
@@ -276,29 +299,39 @@
             sessionView.classList.remove('hidden');
         }
 
-        async function pollSession() {
-            try {
-                const session = await getSession(currentSessionId);
-                if (session && session.chat_history !== chatHistory) {
-                    chatHistory = session.chat_history || [];
-                    currentSession = session;
-                    
-                    // Render chat history
-                    chatLog.innerHTML = '';
-                    chatHistory.forEach(msg => {
-                        displayMessage({ 
-                            text: msg.parts[0].text, 
-                            type: msg.role === 'model' ? 'gm' : 'player', 
-                            author: msg.author || (msg.role === 'model' ? 'GM' : 'Player') 
-                        });
-                    });
-                }
-            } catch (error) {
-                console.error('Error polling session:', error);
-            }
+        async function listenToSession(sessionId) {
+            // Subscribe to real-time updates for the session
+            sessionSubscription = supabase
+                .channel(`session:${sessionId}`)
+                .on('postgres_changes', 
+                    { 
+                        event: 'UPDATE', 
+                        schema: 'public', 
+                        table: 'trpg_sessions',
+                        filter: `id=eq.${sessionId}`
+                    }, 
+                    (payload) => {
+                        console.log('Session updated:', payload);
+                        if (payload.new) {
+                            chatHistory = payload.new.chat_history || [];
+                            
+                            // Render chat history
+                            chatLog.innerHTML = ''; // Clear previous messages
+                            chatHistory.forEach(msg => {
+                                displayMessage({ 
+                                    text: msg.parts[0].text, 
+                                    type: msg.role === 'model' ? 'gm' : 'player', 
+                                    author: msg.author || (msg.role === 'model' ? 'GM' : 'Player') 
+                                });
+                            });
+                        }
+                    }
+                )
+                .subscribe();
         }
 
         // --- EVENT LISTENERS ---
+
         createSessionBtn.addEventListener('click', async () => {
             const apiKey = document.getElementById('gemini-api-key').value.trim();
             const startPrompt = document.getElementById('starting-prompt').value.trim();
@@ -309,28 +342,45 @@
             }
 
             try {
-                // Create session via server
-                const session = await createSession(apiKey, startPrompt);
+                // 1. Create a new session in Supabase
+                const { data: session, error: sessionError } = await supabase
+                    .from('trpg_sessions')
+                    .insert({
+                        gemini_api_key: apiKey,
+                        players: {},
+                        chat_history: [],
+                        created_at: new Date().toISOString()
+                    })
+                    .select()
+                    .single();
+
+                if (sessionError) throw sessionError;
+                
                 currentSessionId = session.id;
-                currentSession = session; // Set the current session
                 
                 const initialUserMessage = { role: "user", parts: [{ text: startPrompt }], author: 'SYSTEM' };
                 chatHistory.push(initialUserMessage);
 
-                // Call Gemini for initial response
+                // 2. Call Gemini for the initial GM response
                 const initialGMResponse = await callGemini(startPrompt, apiKey);
-                if (!initialGMResponse) return;
+                if (!initialGMResponse) return; // Error handled in callGemini
 
+                // 3. Update the session with the initial conversation
                 const initialHistory = [
                     initialUserMessage,
                     { role: "model", parts: [{ text: initialGMResponse }], author: 'GM' }
                 ];
                 
-                // Update session via server
-                await updateSession(currentSessionId, { chat_history: initialHistory });
+                const { error: updateError } = await supabase
+                    .from('trpg_sessions')
+                    .update({ chat_history: initialHistory })
+                    .eq('id', currentSessionId);
 
+                if (updateError) throw updateError;
+
+                // 4. Switch to game view
                 switchToGameView(currentSessionId);
-                characterModal.classList.remove('hidden');
+                characterModal.classList.remove('hidden'); // Show character creation
 
             } catch (error) {
                 console.error("Error creating session:", error);
@@ -346,10 +396,17 @@
             }
 
             try {
-                const session = await getSession(sessionId);
-                currentSession = session;
-                chatHistory = session.chat_history || [];
-                
+                const { data: session, error } = await supabase
+                    .from('trpg_sessions')
+                    .select('*')
+                    .eq('id', sessionId)
+                    .single();
+
+                if (error || !session) {
+                    displayMessage({ text: 'Session ID not found.', type: 'error' });
+                    return;
+                }
+
                 switchToGameView(sessionId);
                 characterModal.classList.remove('hidden');
             } catch (error) {
@@ -367,33 +424,35 @@
             characterName = name;
             
             try {
-                // Generate user ID
-                userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+                // Get current session data
+                const { data: session, error: sessionError } = await supabase
+                    .from('trpg_sessions')
+                    .select('*')
+                    .eq('id', currentSessionId)
+                    .single();
 
-                // Ensure we have the current session data
-                if (!currentSession) {
-                    const sessionData = await getSession(currentSessionId);
-                    currentSession = sessionData;
-                }
+                if (sessionError) throw sessionError;
 
                 // Update players and add join message
-                const updatedPlayers = { ...(currentSession.players || {}), [userId]: characterName };
+                const updatedPlayers = { ...session.players, [userId]: characterName };
                 const joinMessage = `${characterName} has joined the adventure!`;
                 const updatedChatHistory = [
-                    ...chatHistory,
+                    ...session.chat_history,
                     { role: "user", parts: [{ text: joinMessage }], author: 'SYSTEM' }
                 ];
 
-                // Update session via server
-                await updateSession(currentSessionId, { 
-                    players: updatedPlayers,
-                    chat_history: updatedChatHistory
-                });
+                const { error: updateError } = await supabase
+                    .from('trpg_sessions')
+                    .update({ 
+                        players: updatedPlayers,
+                        chat_history: updatedChatHistory
+                    })
+                    .eq('id', currentSessionId);
+
+                if (updateError) throw updateError;
 
                 characterModal.classList.add('hidden');
-                
-                // Start polling for updates
-                pollInterval = setInterval(pollSession, 2000);
+                await listenToSession(currentSessionId); // Start listening for updates
 
             } catch (error) {
                 console.error("Error joining game:", error);
@@ -410,35 +469,47 @@
             sendActionBtn.disabled = true;
 
             try {
-                // Ensure we have the current session data
-                if (!currentSession) {
-                    const sessionData = await getSession(currentSessionId);
-                    currentSession = sessionData;
-                }
+                // Get current session data
+                const { data: session, error: sessionError } = await supabase
+                    .from('trpg_sessions')
+                    .select('*')
+                    .eq('id', currentSessionId)
+                    .single();
+
+                if (sessionError) throw sessionError;
                 
-                const apiKey = currentSession.gemini_api_key;
+                const apiKey = session.gemini_api_key;
                 const fullPrompt = `${characterName}: ${actionText}`;
 
-                // Add player action to chat history
+                // 1. Update Supabase with player's action immediately for responsiveness
                 const updatedChatHistory = [
-                    ...chatHistory,
+                    ...session.chat_history,
                     { role: "user", parts: [{ text: actionText }], author: characterName }
                 ];
 
-                // Update session via server
-                await updateSession(currentSessionId, { chat_history: updatedChatHistory });
+                const { error: updateError } = await supabase
+                    .from('trpg_sessions')
+                    .update({ chat_history: updatedChatHistory })
+                    .eq('id', currentSessionId);
 
-                // Call Gemini for GM response
+                if (updateError) throw updateError;
+
+                // 2. Call Gemini for the GM's response
                 const gmResponse = await callGemini(fullPrompt, apiKey);
 
+                // 3. Update Supabase with GM's response
                 if (gmResponse) {
                     const finalChatHistory = [
                         ...updatedChatHistory,
                         { role: "model", parts: [{ text: gmResponse }], author: 'GM' }
                     ];
 
-                    // Update session with GM response
-                    await updateSession(currentSessionId, { chat_history: finalChatHistory });
+                    const { error: finalUpdateError } = await supabase
+                        .from('trpg_sessions')
+                        .update({ chat_history: finalChatHistory })
+                        .eq('id', currentSessionId);
+
+                    if (finalUpdateError) throw finalUpdateError;
                 }
 
             } catch (error) {
@@ -465,8 +536,7 @@
         });
 
         // Initialize the app
-        userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-        console.log('User initialized:', userId);
+        initializeAuth();
     </script>
 </body>
 </html> 

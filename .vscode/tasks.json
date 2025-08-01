@@ -1,0 +1,92 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Development Server",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "dev"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "isBackground": true
+        },
+        {
+            "label": "Install Dependencies",
+            "type": "shell",
+            "command": "npm",
+            "args": ["install"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Deploy to Vercel",
+            "type": "shell",
+            "command": "vercel",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build for Production",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "build"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Open in Browser",
+            "type": "shell",
+            "command": "open",
+            "args": ["http://localhost:3000"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "dependsOn": "Start Development Server"
+        },
+        {
+            "label": "Stop Development Server",
+            "type": "shell",
+            "command": "pkill",
+            "args": ["-f", "node dev-server.js"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ]
+} 

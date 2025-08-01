@@ -1,0 +1,28 @@
+{
+  "name": "multiplayer-trpg",
+  "version": "1.0.0",
+  "description": "A real-time multiplayer tabletop role-playing game with AI Game Master",
+  "main": "dev-server.js",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "dev-simple": "node dev-server-simple.js",
+    "start": "node dev-server.js",
+    "build": "node build.js",
+    "vercel-build": "echo 'Build complete'"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0",
+    "dotenv": "^16.3.1",
+    "node-fetch": "^2.7.0"
+  },
+  "keywords": [
+    "trpg",
+    "multiplayer",
+    "game",
+    "ai",
+    "supabase",
+    "vercel"
+  ],
+  "author": "",
+  "license": "MIT"
+}

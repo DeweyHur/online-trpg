@@ -1,0 +1,71 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Development Server",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/dev-server.js",
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "name": "Debug Development Server",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/dev-server.js",
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+                "NODE_ENV": "development"
+            },
+            "outputCapture": "std"
+        },
+        {
+            "name": "Launch with Breakpoints",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/dev-server.js",
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+                "NODE_ENV": "development"
+            },
+            "stopOnEntry": false,
+            "restart": true
+        },
+        {
+            "name": "Attach to Development Server",
+            "type": "node",
+            "request": "attach",
+            "port": 9229,
+            "restart": true,
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "${workspaceFolder}"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Full Stack Debug",
+            "configurations": [
+                "Launch Development Server"
+            ],
+            "stopAll": true
+        }
+    ]
+} 

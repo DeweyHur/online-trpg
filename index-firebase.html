@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multiplayer TRPG - Server Gateway</title>
+    <title>Multiplayer TRPG</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
+        /* Custom modal confirm */
         .confirm-modal-backdrop {
             position: fixed;
             inset: 0;
@@ -20,7 +21,7 @@
             z-index: 50;
         }
         .confirm-modal {
-            background-color: #1F2937;
+            background-color: #1F2937; /* bg-gray-800 */
             padding: 2rem;
             border-radius: 0.5rem;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -32,11 +33,7 @@
 <body class="bg-gray-900 text-white">
 
     <div id="app" class="container mx-auto p-4 md:p-8">
-        <!-- Server Gateway Notice -->
-        <div class="max-w-lg mx-auto mb-6 bg-green-900 p-4 rounded-lg shadow-lg">
-            <h2 class="text-lg font-semibold text-green-200 mb-2">🔧 Server Gateway Mode</h2>
-            <p class="text-sm text-green-100">This app uses the development server as a backend gateway. No client-side Supabase configuration needed!</p>
-        </div>
+        <!-- Main container for the app -->
 
         <!-- Session Creation / Joining View -->
         <div id="session-view" class="max-w-lg mx-auto bg-gray-800 p-8 rounded-lg shadow-lg">
@@ -96,7 +93,12 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, onSnapshot, collection, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         // --- DOM ELEMENTS ---
         const sessionView = document.getElementById('session-view');
         const gameView = document.getElementById('game-view');
@@ -110,48 +112,76 @@
         const characterModal = document.getElementById('character-modal');
         const createCharacterBtn = document.getElementById('create-character-btn');
 
+        // --- FIREBASE SETUP ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_API_KEY", authDomain: "YOUR_AUTH_DOMAIN", projectId: "YOUR_PROJECT_ID" };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-trpg-app';
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
         // --- APP STATE ---
         let currentSessionId = null;
         let userId = null;
         let characterName = null;
+        let unsubscribeSession = null;
         let chatHistory = [];
-        let currentSession = null;
-        let pollInterval = null;
 
-        // --- SERVER API FUNCTIONS ---
-        async function apiCall(endpoint, method = 'GET', data = null) {
-            const options = {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
+        // --- AUTHENTICATION ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+            } else {
+                 try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Authentication Error:", error);
+                    displayMessage({ text: `Authentication failed: ${error.message}`, type: 'error' });
                 }
-            };
-            
-            if (data) {
-                options.body = JSON.stringify(data);
             }
+        });
 
-            const response = await fetch(`/api${endpoint}`, options);
-            const result = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(result.error || 'API call failed');
-            }
-            
-            return result;
-        }
-
+        // --- GEMINI API ---
         async function callGemini(prompt, apiKey) {
             displayMessage({ text: 'GM is thinking...', type: 'system' });
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
             
+            // FIX: Sanitize chat history for the API call, removing the 'author' field which is not part of the API spec.
+            const apiChatHistory = chatHistory.map(({ role, parts }) => ({ role, parts }));
+
+            const requestBody = {
+                contents: [...apiChatHistory, { role: "user", parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0.7,
+                    topK: 1,
+                    topP: 1,
+                    maxOutputTokens: 8192,
+                },
+            };
+
             try {
-                const result = await apiCall('/gemini', 'POST', {
-                    prompt,
-                    apiKey,
-                    chatHistory: chatHistory.map(({ role, parts }) => ({ role, parts }))
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
                 });
-                
-                return result.response;
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error.message || `HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    return text;
+                }
+                throw new Error("No content generated.");
+
             } catch (error) {
                 console.error("Gemini API Error:", error);
                 displayMessage({ text: `GM Error: ${error.message}`, type: 'error' });
@@ -159,25 +189,8 @@
             }
         }
 
-        async function createSession(geminiApiKey, startingPrompt) {
-            const result = await apiCall('/sessions', 'POST', {
-                geminiApiKey,
-                startingPrompt
-            });
-            return result.session;
-        }
-
-        async function getSession(sessionId) {
-            const result = await apiCall(`/sessions/${sessionId}`);
-            return result.session;
-        }
-
-        async function updateSession(sessionId, updateData) {
-            const result = await apiCall(`/sessions/${sessionId}`, 'PUT', updateData);
-            return result.session;
-        }
-
         // --- UI & GAME LOGIC ---
+
         function displayMessage({ text, type, author = 'GM' }) {
             const messageEl = document.createElement('div');
             messageEl.classList.add('mb-4');
@@ -201,7 +214,7 @@
                     textColor = 'text-red-200';
                     authorPrefix = `<strong>[ERROR]</strong>: `;
                     break;
-                case 'gm':
+                case 'gm': // Explicitly handle GM messages
                     bgColor = 'bg-gray-700';
                     textColor = 'text-indigo-200';
                     break;
@@ -255,6 +268,7 @@
             });
         }
 
+
         function switchToGameView(sessionId) {
             currentSessionId = sessionId;
             sessionView.classList.add('hidden');
@@ -263,12 +277,11 @@
         }
 
         function switchToSessionView() {
-            if (pollInterval) {
-                clearInterval(pollInterval);
-                pollInterval = null;
+            if (unsubscribeSession) {
+                unsubscribeSession();
+                unsubscribeSession = null;
             }
             currentSessionId = null;
-            currentSession = null;
             characterName = null;
             chatHistory = [];
             chatLog.innerHTML = '';
@@ -276,61 +289,71 @@
             sessionView.classList.remove('hidden');
         }
 
-        async function pollSession() {
-            try {
-                const session = await getSession(currentSessionId);
-                if (session && session.chat_history !== chatHistory) {
-                    chatHistory = session.chat_history || [];
-                    currentSession = session;
+        async function listenToSession(sessionId) {
+            const sessionRef = doc(db, `artifacts/${appId}/public/data/trpg_sessions`, sessionId);
+            
+            if (unsubscribeSession) unsubscribeSession(); // Unsubscribe from previous listener
+
+            unsubscribeSession = onSnapshot(sessionRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    chatHistory = data.chatHistory || [];
                     
                     // Render chat history
-                    chatLog.innerHTML = '';
+                    chatLog.innerHTML = ''; // Clear previous messages
                     chatHistory.forEach(msg => {
-                        displayMessage({ 
-                            text: msg.parts[0].text, 
-                            type: msg.role === 'model' ? 'gm' : 'player', 
-                            author: msg.author || (msg.role === 'model' ? 'GM' : 'Player') 
-                        });
+                        displayMessage({ text: msg.parts[0].text, type: msg.role === 'model' ? 'gm' : 'player', author: msg.author || (msg.role === 'model' ? 'GM' : 'Player') });
                     });
+
+                } else {
+                    console.error("Session not found!");
+                    displayMessage({ text: 'Session not found. It might have been deleted.', type: 'error' });
+                    switchToSessionView();
                 }
-            } catch (error) {
-                console.error('Error polling session:', error);
-            }
+            });
         }
 
         // --- EVENT LISTENERS ---
+
         createSessionBtn.addEventListener('click', async () => {
             const apiKey = document.getElementById('gemini-api-key').value.trim();
             const startPrompt = document.getElementById('starting-prompt').value.trim();
 
             if (!apiKey || !startPrompt) {
-                createCustomConfirm("API Key and Starting Prompt are required. OK?");
+                // Using a custom modal instead of alert
+                const modal = createCustomConfirm("API Key and Starting Prompt are required. OK?");
                 return;
             }
 
             try {
-                // Create session via server
-                const session = await createSession(apiKey, startPrompt);
-                currentSessionId = session.id;
-                currentSession = session; // Set the current session
+                // 1. Create a new session document in Firestore
+                const newSessionRef = await addDoc(collection(db, `artifacts/${appId}/public/data/trpg_sessions`), {
+                    geminiApiKey: apiKey, // In a real app, this should be handled server-side for security
+                    players: {},
+                    chatHistory: [],
+                    createdAt: new Date(),
+                });
+                
+                currentSessionId = newSessionRef.id;
                 
                 const initialUserMessage = { role: "user", parts: [{ text: startPrompt }], author: 'SYSTEM' };
                 chatHistory.push(initialUserMessage);
 
-                // Call Gemini for initial response
+                // 2. Call Gemini for the initial GM response
                 const initialGMResponse = await callGemini(startPrompt, apiKey);
-                if (!initialGMResponse) return;
+                if (!initialGMResponse) return; // Error handled in callGemini
 
+                // 3. Update the session with the initial conversation
+                const sessionRef = doc(db, `artifacts/${appId}/public/data/trpg_sessions`, currentSessionId);
                 const initialHistory = [
                     initialUserMessage,
                     { role: "model", parts: [{ text: initialGMResponse }], author: 'GM' }
                 ];
-                
-                // Update session via server
-                await updateSession(currentSessionId, { chat_history: initialHistory });
+                await updateDoc(sessionRef, { chatHistory: initialHistory });
 
+                // 4. Switch to game view
                 switchToGameView(currentSessionId);
-                characterModal.classList.remove('hidden');
+                characterModal.classList.remove('hidden'); // Show character creation
 
             } catch (error) {
                 console.error("Error creating session:", error);
@@ -345,16 +368,14 @@
                 return;
             }
 
-            try {
-                const session = await getSession(sessionId);
-                currentSession = session;
-                chatHistory = session.chat_history || [];
-                
+            const sessionRef = doc(db, `artifacts/${appId}/public/data/trpg_sessions`, sessionId);
+            const docSnap = await getDoc(sessionRef);
+
+            if (docSnap.exists()) {
                 switchToGameView(sessionId);
                 characterModal.classList.remove('hidden');
-            } catch (error) {
-                console.error("Error joining session:", error);
-                displayMessage({ text: `Error joining session: ${error.message}`, type: 'error' });
+            } else {
+                displayMessage({ text: 'Session ID not found.', type: 'error' });
             }
         });
 
@@ -367,33 +388,16 @@
             characterName = name;
             
             try {
-                // Generate user ID
-                userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-
-                // Ensure we have the current session data
-                if (!currentSession) {
-                    const sessionData = await getSession(currentSessionId);
-                    currentSession = sessionData;
-                }
-
-                // Update players and add join message
-                const updatedPlayers = { ...(currentSession.players || {}), [userId]: characterName };
+                const sessionRef = doc(db, `artifacts/${appId}/public/data/trpg_sessions`, currentSessionId);
+                 // Announce the new player
                 const joinMessage = `${characterName} has joined the adventure!`;
-                const updatedChatHistory = [
-                    ...chatHistory,
-                    { role: "user", parts: [{ text: joinMessage }], author: 'SYSTEM' }
-                ];
-
-                // Update session via server
-                await updateSession(currentSessionId, { 
-                    players: updatedPlayers,
-                    chat_history: updatedChatHistory
+                await updateDoc(sessionRef, {
+                    [`players.${userId}`]: characterName,
+                    chatHistory: arrayUnion({ role: "user", parts: [{ text: joinMessage }], author: 'SYSTEM' })
                 });
 
                 characterModal.classList.add('hidden');
-                
-                // Start polling for updates
-                pollInterval = setInterval(pollSession, 2000);
+                await listenToSession(currentSessionId); // Start listening for updates
 
             } catch (error) {
                 console.error("Error joining game:", error);
@@ -410,35 +414,26 @@
             sendActionBtn.disabled = true;
 
             try {
-                // Ensure we have the current session data
-                if (!currentSession) {
-                    const sessionData = await getSession(currentSessionId);
-                    currentSession = sessionData;
-                }
+                const sessionRef = doc(db, `artifacts/${appId}/public/data/trpg_sessions`, currentSessionId);
+                const sessionDoc = await getDoc(sessionRef);
+                if (!sessionDoc.exists()) throw new Error("Session not found.");
                 
-                const apiKey = currentSession.gemini_api_key;
+                const apiKey = sessionDoc.data().geminiApiKey;
                 const fullPrompt = `${characterName}: ${actionText}`;
 
-                // Add player action to chat history
-                const updatedChatHistory = [
-                    ...chatHistory,
-                    { role: "user", parts: [{ text: actionText }], author: characterName }
-                ];
+                // 1. Update Firestore with player's action immediately for responsiveness
+                await updateDoc(sessionRef, {
+                    chatHistory: arrayUnion({ role: "user", parts: [{ text: actionText }], author: characterName })
+                });
 
-                // Update session via server
-                await updateSession(currentSessionId, { chat_history: updatedChatHistory });
-
-                // Call Gemini for GM response
+                // 2. Call Gemini for the GM's response
                 const gmResponse = await callGemini(fullPrompt, apiKey);
 
+                // 3. Update Firestore with GM's response
                 if (gmResponse) {
-                    const finalChatHistory = [
-                        ...updatedChatHistory,
-                        { role: "model", parts: [{ text: gmResponse }], author: 'GM' }
-                    ];
-
-                    // Update session with GM response
-                    await updateSession(currentSessionId, { chat_history: finalChatHistory });
+                     await updateDoc(sessionRef, {
+                        chatHistory: arrayUnion({ role: "model", parts: [{ text: gmResponse }], author: 'GM' })
+                    });
                 }
 
             } catch (error) {
@@ -463,10 +458,6 @@
                 switchToSessionView();
             }
         });
-
-        // Initialize the app
-        userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-        console.log('User initialized:', userId);
     </script>
 </body>
-</html> 
+</html>

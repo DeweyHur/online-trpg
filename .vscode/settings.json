@@ -1,0 +1,39 @@
+{
+    "files.exclude": {
+        "**/node_modules": true,
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/package-lock.json": true
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll": true
+    },
+    "files.associations": {
+        "*.html": "html",
+        "*.js": "javascript",
+        "*.json": "json",
+        "*.sql": "sql"
+    },
+    "emmet.includeLanguages": {
+        "javascript": "html"
+    },
+    "liveServer.settings.root": "/",
+    "liveServer.settings.port": 3000,
+    "liveServer.settings.CustomBrowser": "chrome",
+    "debug.console.fontSize": 12,
+    "debug.console.lineHeight": 18,
+    "terminal.integrated.fontSize": 12,
+    "terminal.integrated.lineHeight": 1.2,
+    "workbench.colorCustomizations": {
+        "editor.lineHighlightBackground": "#2d3748",
+        "editor.lineHighlightBorder": "#4a5568"
+    },
+    "editor.rulers": [80, 120],
+    "editor.wordWrap": "bounded",
+    "editor.wordWrapColumn": 120
+} 
