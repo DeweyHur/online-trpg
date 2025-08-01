@@ -35,7 +35,7 @@ function initializeApp() {
             // Create session via server
             const session = await createSession(apiKey, startPrompt);
             updateGlobalVariables(session);
-            
+
             const initialUserMessage = { role: "user", parts: [{ text: startPrompt }], author: 'SYSTEM' };
             chatHistory.push(initialUserMessage);
 
@@ -47,16 +47,19 @@ function initializeApp() {
                 initialUserMessage,
                 { role: "model", parts: [{ text: initialGMResponse }], author: 'GM' }
             ];
-            
+
             // Update session via server
             await updateSession(window.currentSession.id, { chat_history: initialHistory });
-            
+
             // Switch to game view
             switchToGameView(window.currentSession.id);
-            
+
             // Start polling
             restartPolling();
             
+            // Display initial chat history (including the messages we just created)
+            displayInitialChatHistory();
+
             // Show character creation modal after creating session
             setTimeout(() => {
                 const characterModal = document.getElementById('character-modal');
@@ -67,7 +70,7 @@ function initializeApp() {
                     console.error('Character modal not found');
                 }
             }, 100); // Small delay to ensure UI is ready
-            
+
         } catch (error) {
             console.error('Error creating session:', error);
             displayMessage({ text: languageManager.getText('sessionCreationError', { error: error.message }), type: 'error' });
@@ -94,7 +97,7 @@ function initializeApp() {
             updateGlobalVariables(session);
             switchToGameView(sessionId);
             restartPolling();
-            
+
             // Show character creation modal after joining session
             setTimeout(() => {
                 const characterModal = document.getElementById('character-modal');
@@ -105,7 +108,7 @@ function initializeApp() {
                     console.error('Character modal not found');
                 }
             }, 100); // Small delay to ensure UI is ready
-            
+
         } catch (error) {
             console.error('Error joining session:', error);
             displayMessage({ text: languageManager.getText('joinSessionError', { error: error.message }), type: 'error' });
@@ -195,7 +198,7 @@ function initializeApp() {
         const selectedLanguage = languageSelector.value;
         languageManager.setLanguage(selectedLanguage);
         updateTooltips();
-        
+
         // Update UI text
         document.getElementById('create-session-text').textContent = languageManager.getText('createSession');
         document.getElementById('join-session-text').textContent = languageManager.getText('joinSession');

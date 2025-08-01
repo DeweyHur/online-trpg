@@ -102,6 +102,11 @@ function switchToGameView(sessionId) {
 
     memberManager.initialize('members-list');
     inputModeManager.initialize('player-action', 'input-mode-indicator', 'send-action-btn');
+    
+    // Display initial chat history if available
+    if (window.chatHistory && window.chatHistory.length > 0) {
+        displayInitialChatHistory();
+    }
 }
 
 function switchToSessionView() {
@@ -224,39 +229,39 @@ async function pollSession() {
                         });
                     }
 
-                                    // Only add new messages instead of re-rendering everything
-                if (newChatHistory.length > window.chatHistory.length) {
-                    const newMessages = newChatHistory.slice(window.chatHistory.length);
-                    console.log('📡 Processing new messages:', newMessages.length);
-                    
-                    for (const msg of newMessages) {
-                        console.log('📡 Processing message:', msg);
-                        displayMessage({
-                            text: msg.parts[0].text,
-                            type: msg.role === 'model' ? 'gm' : 'player',
-                            author: msg.author || (msg.role === 'model' ? 'GM' : 'Player')
-                        });
+                    // Only add new messages instead of re-rendering everything
+                    if (newChatHistory.length > window.chatHistory.length) {
+                        const newMessages = newChatHistory.slice(window.chatHistory.length);
+                        console.log('📡 Processing new messages:', newMessages.length);
 
-                        // Process commands in GM messages
-                        if (msg.role === 'model') {
-                            const commandUpdates = turnSystem.processCommands(msg.parts[0].text);
-                            if (Object.keys(commandUpdates).length > 0) {
-                                // Update session with command changes
-                                await updateSession(window.currentSession.id, commandUpdates);
+                        for (const msg of newMessages) {
+                            console.log('📡 Processing message:', msg);
+                            displayMessage({
+                                text: msg.parts[0].text,
+                                type: msg.role === 'model' ? 'gm' : 'player',
+                                author: msg.author || (msg.role === 'model' ? 'GM' : 'Player')
+                            });
+
+                            // Process commands in GM messages
+                            if (msg.role === 'model') {
+                                const commandUpdates = turnSystem.processCommands(msg.parts[0].text);
+                                if (Object.keys(commandUpdates).length > 0) {
+                                    // Update session with command changes
+                                    await updateSession(window.currentSession.id, commandUpdates);
+                                }
                             }
                         }
+                    } else {
+                        console.log('📡 No new messages to display');
                     }
                 } else {
-                    console.log('📡 No new messages to display');
-                }
-                                } else {
                     console.log('⚠️ Turn system not initialized, skipping turn-related updates');
-                    
+
                     // Still update chat history even if turn system isn't ready
                     if (newChatHistory.length > window.chatHistory.length) {
                         const newMessages = newChatHistory.slice(window.chatHistory.length);
                         console.log('📡 Processing new messages (fallback):', newMessages.length);
-                        
+
                         for (const msg of newMessages) {
                             console.log('📡 Processing message (fallback):', msg);
                             displayMessage({
@@ -292,6 +297,30 @@ function updateGlobalVariables(session) {
     currentSession = session;
     window.chatHistory = session.chat_history || [];
     chatHistory = session.chat_history || [];
+}
+
+function displayInitialChatHistory() {
+    console.log('📝 Displaying initial chat history:', window.chatHistory.length, 'messages');
+    
+    // Clear existing chat
+    const chatLog = document.getElementById('chat-log');
+    if (chatLog) {
+        chatLog.innerHTML = '';
+    }
+    
+    // Display all messages in chat history
+    if (window.chatHistory && window.chatHistory.length > 0) {
+        window.chatHistory.forEach(msg => {
+            displayMessage({
+                text: msg.parts[0].text,
+                type: msg.role === 'model' ? 'gm' : 'player',
+                author: msg.author || (msg.role === 'model' ? 'GM' : 'Player')
+            });
+        });
+        console.log('📝 Initial chat history displayed successfully');
+    } else {
+        console.log('📝 No initial chat history to display');
+    }
 }
 
 function restartPolling() {
