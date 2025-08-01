@@ -80,9 +80,12 @@ function initializeApp() {
 
     joinSessionBtn.addEventListener('click', async () => {
         const sessionId = document.getElementById('session-id-input').value.trim();
-        const apiKey = document.getElementById('gemini-api-key').value.trim();
+        const apiKey = document.getElementById('join-gemini-api-key').value.trim();
+
+        console.log('Join session attempt:', { sessionId, apiKeyLength: apiKey.length });
 
         if (!sessionId || !apiKey) {
+            console.log('Validation failed:', { sessionId: !!sessionId, apiKey: !!apiKey });
             createCustomConfirm(languageManager.getText('sessionIdRequired'));
             return;
         }
