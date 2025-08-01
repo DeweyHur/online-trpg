@@ -6,6 +6,12 @@
     <title>Multiplayer TRPG - Server Gateway</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="languages-en.js"></script>
+    <script src="languages-ko.js"></script>
+    <script src="languages-ja.js"></script>
+    <script src="languages.js"></script>
+    <script src="turn-system.js"></script>
+    <script src="test-turn-system.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -140,6 +146,7 @@
             <select id="language-selector" class="bg-gray-700 text-white px-3 py-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 <option value="en">English</option>
                 <option value="ko">한국어</option>
+                <option value="ja">日本語</option>
             </select>
         </div>
 
@@ -180,6 +187,19 @@
                      </div>
                  </div>
             </div>
+            
+            <!-- Main Game Layout -->
+            <div class="flex space-x-4">
+                <!-- Members Sidebar -->
+                <div class="w-64 bg-gray-800 rounded-lg p-4 border border-gray-700">
+                    <h3 class="text-lg font-semibold mb-3 text-indigo-400" data-i18n="membersTitle">Members</h3>
+                    <div id="members-list" class="space-y-1">
+                        <!-- Members will be populated here -->
+                    </div>
+                </div>
+                
+                <!-- Main Game Area -->
+                <div class="flex-1">
            
             <!-- Character Creation Modal -->
             <div id="character-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center hidden z-50">
@@ -202,6 +222,12 @@
 
             <!-- Player Action Input with Markdown Formatting -->
             <div class="space-y-2">
+                <!-- Input Mode Indicator -->
+                <div class="flex items-center justify-between mb-2">
+                    <div id="input-mode-indicator" class="text-sm font-semibold text-blue-400" data-i18n="chatMode">Chat Mode</div>
+                    <button id="mode-toggle-btn" class="text-xs bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded transition duration-300" data-i18n="toggleModeButton">Toggle Mode</button>
+                </div>
+                
                 <!-- Formatting Toolbar -->
                 <div class="format-toolbar">
                     <button class="format-btn" data-format="bold" data-i18n-title="boldTooltip" title="Bold (Ctrl+B)">B</button>
@@ -223,6 +249,8 @@
                     <button id="send-action-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 self-end" data-i18n="sendButton">Send</button>
                 </div>
             </div>
+                </div>
+            </div>
              <div class="mt-4 text-center">
                 <button id="leave-session-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition duration-300" data-i18n="leaveSessionButton">Leave Session</button>
             </div>
@@ -230,215 +258,6 @@
     </div>
 
     <script>
-        // Multi-language support for TRPG application
-        const LANGUAGES = {
-            en: {
-                // Page title and headers
-                pageTitle: "Multiplayer TRPG - Server Gateway",
-                mainTitle: "Multiplayer TRPG",
-                gameTitle: "TRPG Session",
-                
-                // Session creation
-                createSessionTitle: "Create a New Session",
-                geminiApiKeyPlaceholder: "Enter your Gemini API Key",
-                startingPromptPlaceholder: "Describe the starting background and who you are...",
-                createSessionButton: "Create Session",
-                
-                // Session joining
-                joinSessionTitle: "Join an Existing Session",
-                sessionIdPlaceholder: "Enter Session ID",
-                joinSessionButton: "Join Session",
-                
-                // Game interface
-                sessionIdLabel: "Session ID:",
-                playingAsLabel: "Playing as:",
-                createCharacterTitle: "Create Your Character",
-                characterNamePlaceholder: "Enter your character's name",
-                joinGameButton: "Join Game",
-                
-                // Chat and actions
-                playerActionPlaceholder: "What do you do? (Supports markdown formatting)",
-                sendButton: "Send",
-                leaveSessionButton: "Leave Session",
-                
-                // Messages
-                gmThinking: "GM is thinking...",
-                joinMessage: "{name} has joined the adventure!",
-                systemError: "SYSTEM ERROR",
-                error: "ERROR",
-                
-                // Validation messages
-                apiKeyRequired: "API Key and Starting Prompt are required. OK?",
-                sessionIdRequired: "Please enter a Session ID.",
-                characterNameRequired: "Please enter a character name. OK?",
-                
-                // Error messages
-                couldNotCreateSession: "Could not create session: {error}",
-                couldNotJoinSession: "Could not join game: {error}",
-                errorJoiningSession: "Error joining session: {error}",
-                gmError: "GM Error: {error}",
-                errorSendingAction: "Error: {error}",
-                
-                // Confirmation dialogs
-                leaveSessionConfirm: "Are you sure you want to leave the session?",
-                
-                // Formatting toolbar
-                boldTooltip: "Bold (Ctrl+B)",
-                italicTooltip: "Italic (Ctrl+I)",
-                codeTooltip: "Code",
-                quoteTooltip: "Quote",
-                linkTooltip: "Link",
-                listTooltip: "List",
-                headingTooltip: "Heading",
-                previewTooltip: "Toggle Preview",
-                
-                // Preview
-                previewPlaceholder: "Preview will appear here...",
-                
-                // Buttons
-                yes: "Yes",
-                no: "No"
-            },
-            
-            ko: {
-                // Page title and headers
-                pageTitle: "멀티플레이어 TRPG - 서버 게이트웨이",
-                mainTitle: "멀티플레이어 TRPG",
-                gameTitle: "TRPG 세션",
-                
-                // Session creation
-                createSessionTitle: "새 세션 만들기",
-                geminiApiKeyPlaceholder: "Gemini API 키를 입력하세요",
-                startingPromptPlaceholder: "시작 배경과 당신이 누구인지 설명하세요...",
-                createSessionButton: "세션 만들기",
-                
-                // Session joining
-                joinSessionTitle: "기존 세션 참가하기",
-                sessionIdPlaceholder: "세션 ID 입력",
-                joinSessionButton: "세션 참가",
-                
-                // Game interface
-                sessionIdLabel: "세션 ID:",
-                playingAsLabel: "플레이어:",
-                createCharacterTitle: "캐릭터 만들기",
-                characterNamePlaceholder: "캐릭터 이름을 입력하세요",
-                joinGameButton: "게임 참가",
-                
-                // Chat and actions
-                playerActionPlaceholder: "무엇을 하시겠습니까? (마크다운 형식 지원)",
-                sendButton: "전송",
-                leaveSessionButton: "세션 나가기",
-                
-                // Messages
-                gmThinking: "GM이 생각하고 있습니다...",
-                joinMessage: "{name}님이 모험에 참가했습니다!",
-                systemError: "시스템 오류",
-                error: "오류",
-                
-                // Validation messages
-                apiKeyRequired: "API 키와 시작 프롬프트가 필요합니다. 확인하시겠습니까?",
-                sessionIdRequired: "세션 ID를 입력해주세요.",
-                characterNameRequired: "캐릭터 이름을 입력해주세요. 확인하시겠습니까?",
-                
-                // Error messages
-                couldNotCreateSession: "세션을 만들 수 없습니다: {error}",
-                couldNotJoinSession: "게임에 참가할 수 없습니다: {error}",
-                errorJoiningSession: "세션 참가 오류: {error}",
-                gmError: "GM 오류: {error}",
-                errorSendingAction: "오류: {error}",
-                
-                // Confirmation dialogs
-                leaveSessionConfirm: "정말로 세션을 나가시겠습니까?",
-                
-                // Formatting toolbar
-                boldTooltip: "굵게 (Ctrl+B)",
-                italicTooltip: "기울임 (Ctrl+I)",
-                codeTooltip: "코드",
-                quoteTooltip: "인용",
-                linkTooltip: "링크",
-                listTooltip: "목록",
-                headingTooltip: "제목",
-                previewTooltip: "미리보기 토글",
-                
-                // Preview
-                previewPlaceholder: "미리보기가 여기에 나타납니다...",
-                
-                // Buttons
-                yes: "예",
-                no: "아니오"
-            }
-        };
-
-        // Language management class
-        class LanguageManager {
-            constructor() {
-                this.currentLanguage = this.getStoredLanguage() || 'en';
-                this.init();
-            }
-            
-            getStoredLanguage() {
-                return localStorage.getItem('trpg-language') || 'en';
-            }
-            
-            setLanguage(lang) {
-                if (LANGUAGES[lang]) {
-                    this.currentLanguage = lang;
-                    localStorage.setItem('trpg-language', lang);
-                    this.updateUI();
-                }
-            }
-            
-            getText(key, params = {}) {
-                const text = LANGUAGES[this.currentLanguage][key] || LANGUAGES['en'][key] || key;
-                
-                // Replace parameters in the text
-                return text.replace(/\{(\w+)\}/g, (match, param) => {
-                    return params[param] || match;
-                });
-            }
-            
-            getAvailableLanguages() {
-                return Object.keys(LANGUAGES).map(code => ({
-                    code,
-                    name: this.getLanguageName(code)
-                }));
-            }
-            
-            getLanguageName(code) {
-                const names = {
-                    'en': 'English',
-                    'ko': '한국어'
-                };
-                return names[code] || code;
-            }
-            
-            init() {
-                this.updateUI();
-            }
-            
-            updateUI() {
-                // Update all elements with data-i18n attributes
-                document.querySelectorAll('[data-i18n]').forEach(element => {
-                    const key = element.getAttribute('data-i18n');
-                    const text = this.getText(key);
-                    
-                    if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
-                        element.placeholder = text;
-                    } else {
-                        element.textContent = text;
-                    }
-                });
-                
-                // Update title
-                document.title = this.getText('pageTitle');
-                
-                // Update html lang attribute
-                document.documentElement.lang = this.currentLanguage;
-            }
-        }
-
-        // Make LanguageManager globally available
-        window.LanguageManager = LanguageManager;
 
         // Initialize app when DOM is ready
         function initializeApp() {
@@ -469,6 +288,11 @@
         let currentSession = null;
         let pollInterval = null;
         
+        // Turn system instances
+        let turnSystem = null;
+        let memberManager = null;
+        let inputModeManager = null;
+        
         // Player colors array
         const playerColors = [
             'player-red', 'player-blue', 'player-green', 'player-yellow', 
@@ -478,11 +302,22 @@
 
         // --- MARKDOWN & FORMATTING FUNCTIONS ---
         function getPlayerColor(playerName) {
-            if (!playerColorMap[playerName]) {
-                const colorIndex = Object.keys(playerColorMap).length % playerColors.length;
-                playerColorMap[playerName] = playerColors[colorIndex];
+            // Use the same logic as MemberManager for consistency
+            const colors = [
+                'text-red-400', 'text-blue-400', 'text-green-400', 'text-yellow-400',
+                'text-purple-400', 'text-pink-400', 'text-indigo-400', 'text-emerald-400'
+            ];
+            
+            // Get unique players from current session if available
+            let uniquePlayers = [];
+            if (window.currentSession && window.currentSession.players) {
+                uniquePlayers = [...new Set(Object.values(window.currentSession.players))];
+            } else if (window.turnSystem && window.turnSystem.players) {
+                uniquePlayers = [...new Set(Object.values(window.turnSystem.players))];
             }
-            return playerColorMap[playerName];
+            
+            const index = uniquePlayers.indexOf(playerName);
+            return colors[index % colors.length];
         }
 
         function formatText(format) {
@@ -689,6 +524,15 @@
             sessionView.classList.add('hidden');
             gameView.classList.remove('hidden');
             sessionIdDisplay.textContent = sessionId;
+            
+            // Initialize turn system components
+            turnSystem = new TurnSystem(languageManager);
+            window.turnSystem = turnSystem; // Make global for color consistency
+            memberManager = new MemberManager(turnSystem);
+            inputModeManager = new InputModeManager(turnSystem, languageManager);
+            
+            memberManager.initialize('members-list');
+            inputModeManager.initialize('player-action', 'input-mode-indicator', 'send-action-btn');
         }
 
         function switchToSessionView() {
@@ -704,6 +548,12 @@
             playerInfo.classList.add('hidden');
             characterModal.classList.add('hidden'); // Ensure modal is hidden
             playerColorMap = {}; // Reset player colors
+            
+            // Reset turn system
+            turnSystem = null;
+            memberManager = null;
+            inputModeManager = null;
+            
             gameView.classList.add('hidden');
             sessionView.classList.remove('hidden');
         }
@@ -711,30 +561,63 @@
         async function pollSession() {
             try {
                 const session = await getSession(currentSessionId);
-                if (session && session.chat_history !== chatHistory) {
+                if (session) {
                     const newChatHistory = session.chat_history || [];
-                    currentSession = session;
+                    const sessionChanged = session.chat_history !== chatHistory || 
+                                         session.current_turn !== turnSystem.currentTurn ||
+                                         JSON.stringify(session.players) !== JSON.stringify(turnSystem.players);
                     
-                    // Initialize player colors for existing players
-                    if (session.players) {
-                        Object.values(session.players).forEach(playerName => {
-                            getPlayerColor(playerName);
-                        });
-                    }
-                    
-                    // Only add new messages instead of re-rendering everything
-                    if (newChatHistory.length > chatHistory.length) {
-                        const newMessages = newChatHistory.slice(chatHistory.length);
-                        newMessages.forEach(msg => {
-                            displayMessage({ 
-                                text: msg.parts[0].text, 
-                                type: msg.role === 'model' ? 'gm' : 'player', 
-                                author: msg.author || (msg.role === 'model' ? 'GM' : 'Player') 
+                    if (sessionChanged) {
+                        currentSession = session;
+                        window.currentSession = session; // Make global for color consistency
+                        
+                        // Store previous turn before updating
+                        const previousTurn = turnSystem.currentTurn;
+                        
+                        // Update turn system
+                        turnSystem.initialize(session);
+                        
+                        // Clean up any duplicate players
+                        turnSystem.cleanupDuplicatePlayers();
+                        
+                        // Set current player after cleanup
+                        if (characterName) {
+                            turnSystem.setCurrentPlayer(characterName);
+                        }
+                        
+                        // Check if turn actually changed
+                        const turnChanged = session.current_turn !== previousTurn;
+                        
+                        // Update UI components
+                        memberManager.updateMembersDisplay();
+                        
+                        // Reset manual mode if turn changed, otherwise respect user's choice
+                        if (turnChanged) {
+                            inputModeManager.resetManualMode();
+                            inputModeManager.updateMode();
+                        }
+                        
+                        // Initialize player colors for existing players
+                        if (session.players) {
+                            Object.values(session.players).forEach(playerName => {
+                                getPlayerColor(playerName);
                             });
-                        });
+                        }
+                        
+                        // Only add new messages instead of re-rendering everything
+                        if (newChatHistory.length > chatHistory.length) {
+                            const newMessages = newChatHistory.slice(chatHistory.length);
+                            newMessages.forEach(msg => {
+                                displayMessage({ 
+                                    text: msg.parts[0].text, 
+                                    type: msg.role === 'model' ? 'gm' : 'player', 
+                                    author: msg.author || (msg.role === 'model' ? 'GM' : 'Player') 
+                                });
+                            });
+                        }
+                        
+                        chatHistory = newChatHistory;
                     }
-                    
-                    chatHistory = newChatHistory;
                 }
             } catch (error) {
                 console.error('Error polling session:', error);
@@ -756,6 +639,7 @@
                 const session = await createSession(apiKey, startPrompt);
                 currentSessionId = session.id;
                 currentSession = session; // Set the current session
+                window.currentSession = session; // Make global for color consistency
                 
                 const initialUserMessage = { role: "user", parts: [{ text: startPrompt }], author: 'SYSTEM' };
                 chatHistory.push(initialUserMessage);
@@ -792,6 +676,7 @@
             try {
                 const session = await getSession(sessionId);
                 currentSession = session;
+                window.currentSession = session; // Make global for color consistency
                 chatHistory = session.chat_history || [];
                 
                 switchToGameView(sessionId);
@@ -824,28 +709,54 @@
             characterName = name;
             
             try {
-                // Generate user ID
-                userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-
                 // Ensure we have the current session data
                 if (!currentSession) {
                     const sessionData = await getSession(currentSessionId);
                     currentSession = sessionData;
+                    window.currentSession = sessionData; // Make global for color consistency
                 }
 
-                // Update players and add join message
-                const updatedPlayers = { ...(currentSession.players || {}), [userId]: characterName };
-                const joinMessage = languageManager.getText('joinMessage', { name: characterName });
-                const updatedChatHistory = [
-                    ...chatHistory,
-                    { role: "user", parts: [{ text: joinMessage }], author: 'SYSTEM' }
-                ];
+                // Check if player already exists in session
+                const existingPlayers = currentSession.players || {};
+                const existingPlayerId = Object.keys(existingPlayers).find(id => existingPlayers[id] === characterName);
+                
+                if (existingPlayerId) {
+                    // Player already exists, use existing ID
+                    userId = existingPlayerId;
+                    console.log('Using existing player ID:', userId);
+                } else {
+                    // Generate new user ID only if player doesn't exist
+                    userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+                    console.log('Generated new player ID:', userId);
+                }
 
-                // Update session via server
-                await updateSession(currentSessionId, { 
-                    players: updatedPlayers,
-                    chat_history: updatedChatHistory
-                });
+                // Update players and add join message (only if new player)
+                let updatedPlayers = { ...existingPlayers };
+                let updatedChatHistory = [...chatHistory];
+                
+                if (!existingPlayerId) {
+                    updatedPlayers[userId] = characterName;
+                    const joinMessage = languageManager.getText('joinMessage', { name: characterName });
+                    updatedChatHistory.push({ role: "user", parts: [{ text: joinMessage }], author: 'SYSTEM' });
+                }
+
+                // Initialize turn system if this is the first player
+                let turnData = {};
+                if (Object.keys(updatedPlayers).length === 1) {
+                    turnData = {
+                        current_turn: characterName,
+                        turn_order: [characterName]
+                    };
+                }
+
+                // Update session via server (only if there are changes)
+                if (!existingPlayerId) {
+                    await updateSession(currentSessionId, { 
+                        players: updatedPlayers,
+                        chat_history: updatedChatHistory,
+                        ...turnData
+                    });
+                }
 
                 characterModal.classList.add('hidden');
                 console.log('Character modal hidden after character creation');
@@ -877,32 +788,48 @@
                 if (!currentSession) {
                     const sessionData = await getSession(currentSessionId);
                     currentSession = sessionData;
+                    window.currentSession = sessionData; // Make global for color consistency
                 }
                 
                 const apiKey = currentSession.gemini_api_key;
-                const fullPrompt = `${characterName}: ${actionText}`;
-
-                // Add player action to chat history
+                const isActionMode = inputModeManager.shouldSendToAI();
+                
+                // Add player message to chat history
                 const updatedChatHistory = [
                     ...chatHistory,
                     { role: "user", parts: [{ text: actionText }], author: characterName }
                 ];
 
-                // Update session via server
-                await updateSession(currentSessionId, { chat_history: updatedChatHistory });
+                let sessionUpdateData = { chat_history: updatedChatHistory };
 
-                // Call Gemini for GM response
-                const gmResponse = await callGemini(fullPrompt, apiKey);
+                // If it's action mode, call Gemini and potentially advance turn
+                if (isActionMode) {
+                    const systemPrompt = inputModeManager.getPrompt();
+                    const fullPrompt = `${systemPrompt}\n\n${characterName}: ${actionText}`;
+                    
+                    // Call Gemini for GM response
+                    const gmResponse = await callGemini(fullPrompt, apiKey);
 
-                if (gmResponse) {
-                    const finalChatHistory = [
-                        ...updatedChatHistory,
-                        { role: "model", parts: [{ text: gmResponse }], author: 'GM' }
-                    ];
-
-                    // Update session with GM response
-                    await updateSession(currentSessionId, { chat_history: finalChatHistory });
+                    if (gmResponse) {
+                        const finalChatHistory = [
+                            ...updatedChatHistory,
+                            { role: "model", parts: [{ text: gmResponse }], author: 'GM' }
+                        ];
+                        sessionUpdateData.chat_history = finalChatHistory;
+                        
+                        // Check if GM response contains turn indicator and advance turn
+                        if (turnSystem.hasTurnIndicator(gmResponse)) {
+                            turnSystem.nextTurn();
+                            sessionUpdateData = {
+                                ...sessionUpdateData,
+                                ...turnSystem.getSessionData()
+                            };
+                        }
+                    }
                 }
+
+                // Update session via server
+                await updateSession(currentSessionId, sessionUpdateData);
 
             } catch (error) {
                 console.error("Error sending action:", error);
@@ -988,6 +915,14 @@
             }
         });
 
+        // Mode toggle button
+        document.getElementById('mode-toggle-btn').addEventListener('click', () => {
+            if (inputModeManager) {
+                const newMode = inputModeManager.currentMode === 'chat' ? 'prompt' : 'chat';
+                inputModeManager.setMode(newMode, true); // Mark as manual change
+            }
+        });
+
         leaveSessionBtn.addEventListener('click', async () => {
              const leave = await createCustomConfirm(languageManager.getText('leaveSessionConfirm'));
              if (leave) {
@@ -996,7 +931,7 @@
         });
 
         // Initialize language manager
-        window.languageManager = new window.LanguageManager();
+        window.languageManager = new LanguageManager();
         
         // Language selector functionality
         languageSelector.value = languageManager.currentLanguage;
@@ -1021,8 +956,7 @@
         };
 
         // Initialize the app
-        userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-        console.log('User initialized:', userId);
+        console.log('App initialized');
         }
 
         // Initialize when DOM is ready

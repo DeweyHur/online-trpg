@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS public.trpg_sessions (
     gemini_api_key TEXT NOT NULL,
     players JSONB DEFAULT '{}'::jsonb,
     chat_history JSONB DEFAULT '[]'::jsonb,
+    current_turn TEXT DEFAULT NULL,
+    turn_order JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

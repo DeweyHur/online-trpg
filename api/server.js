@@ -62,6 +62,8 @@ async function handleApiRequest(req, res, pathname, method) {
                     gemini_api_key: geminiApiKey,
                     players: {},
                     chat_history: [],
+                    current_turn: null,
+                    turn_order: [],
                     created_at: new Date().toISOString()
                 })
                 .select()
