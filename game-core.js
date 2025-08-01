@@ -318,7 +318,7 @@ function displayInitialChatHistory() {
             });
         });
         console.log('📝 Initial chat history displayed successfully');
-        
+
         // Scroll to bottom after displaying all messages
         chatLog.scrollTop = chatLog.scrollHeight;
     } else {

@@ -81,7 +81,7 @@ class LanguageManager {
 if (typeof window !== 'undefined') {
     window.LANGUAGES = LANGUAGES;
     window.LanguageManager = LanguageManager;
-    
+
     // Create global languageManager instance
     window.languageManager = new LanguageManager();
 }
