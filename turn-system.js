@@ -144,7 +144,13 @@ class TurnSystem {
 
     // Remove player from turn system
     removePlayer(playerName) {
-        delete this.players[playerName];
+        // Find the user ID for the player name
+        const userId = Object.keys(this.players).find(id => this.players[id] === playerName);
+
+        if (userId) {
+            delete this.players[userId];
+        }
+
         this.turnOrder = this.turnOrder.filter(name => name !== playerName);
 
         // If removed player was current turn, move to next
@@ -216,7 +222,12 @@ class MemberManager {
         // Handle remove player action
         document.getElementById('remove-player-btn').addEventListener('click', () => {
             const playerName = this.contextMenu.dataset.playerName;
-            this.removePlayer(playerName);
+
+            // Show confirmation dialog
+            if (confirm(`${this.turnSystem.languageManager.getText('confirmRemovePlayer', { name: playerName })}`)) {
+                this.removePlayer(playerName);
+            }
+
             this.hideContextMenu();
         });
 
@@ -266,7 +277,10 @@ class MemberManager {
                     <span class="text-sm ${playerColor}">${playerName}</span>
                     ${playerName === this.turnSystem.currentTurn ? '<span class="text-xs bg-yellow-500 text-black px-1 rounded">TURN</span>' : ''}
                 </div>
-                <span class="text-xs text-gray-400">${playerName === this.turnSystem.currentPlayerName ? '(You)' : ''}</span>
+                <div class="flex items-center space-x-1">
+                    <span class="text-xs text-gray-400">${playerName === this.turnSystem.currentPlayerName ? '(You)' : ''}</span>
+                    ${playerName !== this.turnSystem.currentPlayerName ? '<span class="text-xs text-gray-500">(Right-click to remove)</span>' : ''}
+                </div>
             `;
 
             // Add context menu for removing players (except current player)
@@ -307,12 +321,29 @@ class MemberManager {
         this.turnSystem.removePlayer(playerName);
         this.updateMembersDisplay();
 
+        // Re-render chat history with updated player highlighting
+        if (window.reRenderChatHistory) {
+            console.log('🔄 Re-rendering chat after player removal');
+            setTimeout(() => {
+                window.reRenderChatHistory();
+            }, 50); // Small delay to ensure member list is updated
+        }
+
+        // Add system message about player removal
+        const leaveMessage = this.turnSystem.languageManager.getText('playerLeftMessage', { name: playerName });
+
         // Update session via API
         try {
             const response = await fetch(`/api/sessions/${window.currentSessionId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(this.turnSystem.getSessionData())
+                body: JSON.stringify({
+                    ...this.turnSystem.getSessionData(),
+                    chat_history: [
+                        ...(window.chatHistory || []),
+                        { role: "user", parts: [{ text: leaveMessage }], author: 'SYSTEM' }
+                    ]
+                })
             });
 
             if (!response.ok) {

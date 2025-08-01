@@ -38,6 +38,7 @@ const LANGUAGES_ES = {
     // Messages
     gmThinking: "El GM está pensando...",
     joinMessage: "¡{name} se ha unido a la aventura!",
+    playerLeftMessage: "{name} ha abandonado la aventura.",
     systemError: "ERROR DEL SISTEMA",
     error: "ERROR",
 
@@ -75,6 +76,7 @@ const LANGUAGES_ES = {
 
     // Turn system
     membersTitle: "Miembros",
+    membersHelpText: "Haz clic derecho en un jugador para eliminarlo de la sesión.",
     promptMode: "Modo Acción",
     chatMode: "Modo Chat",
     promptPlaceholder: "¿Qué acción tomas? (Soporta formato markdown)",
@@ -83,6 +85,7 @@ const LANGUAGES_ES = {
     sendChatButton: "Enviar Chat",
     toggleModeButton: "Alternar Modo",
     removePlayerButton: "Eliminar Jugador",
+    confirmRemovePlayer: "¿Estás seguro de que quieres eliminar a {name} de la sesión?",
 
     // Turn system prompts
     turnPrompt: "Miembros actuales de la sesión: {playerList}\n\nEs el turno de: ${currentTurn}$\n\nEste jugador debe tomar su acción ahora. Otros jugadores por favor esperen.",

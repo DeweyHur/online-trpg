@@ -32,6 +32,7 @@ const LANGUAGES_JA = {
     // Messages
     gmThinking: "GMが考えています...",
     joinMessage: "{name}が冒険に参加しました！",
+    playerLeftMessage: "{name}が冒険を去りました。",
     systemError: "システムエラー",
     error: "エラー",
 
@@ -69,6 +70,7 @@ const LANGUAGES_JA = {
 
     // Turn system
     membersTitle: "メンバー",
+    membersHelpText: "プレイヤーを右クリックしてセッションから削除できます。",
     promptMode: "アクションモード",
     chatMode: "チャットモード",
     promptPlaceholder: "どのような行動を取りますか？ (マークダウン形式対応)",
@@ -77,6 +79,7 @@ const LANGUAGES_JA = {
     sendChatButton: "チャット送信",
     toggleModeButton: "モード切り替え",
     removePlayerButton: "プレイヤー削除",
+    confirmRemovePlayer: "{name}をセッションから削除してもよろしいですか？",
 
     // Turn system prompts
     turnPrompt: "現在のセッションメンバー: {playerList}\n\n次のプレイヤーの番です: ${currentTurn}$\n\nこのプレイヤーが行動を取る番です。他のプレイヤーはお待ちください。\n\nプレイヤーの行動後、${Turn=PlayerName}で次のプレイヤーの番を設定してください。メンバーリストにいるプレイヤーのみ使用してください。",

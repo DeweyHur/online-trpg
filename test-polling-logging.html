@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Polling Logging</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="languages-en.js"></script>
+    <script src="turn-system.js"></script>
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Test Polling Logging</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Polling Controls -->
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">Polling Controls</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <button onclick="startTestPolling()" class="w-full bg-green-600 hover:bg-green-700 py-2 rounded mb-2">Start Polling</button>
+                        <button onclick="stopTestPolling()" class="w-full bg-red-600 hover:bg-red-700 py-2 rounded mb-2">Stop Polling</button>
+                        <button onclick="restartTestPolling()" class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded mb-2">Restart Polling</button>
+                    </div>
+                    
+                    <div>
+                        <button onclick="logPollingStatus()" class="w-full bg-yellow-600 hover:bg-yellow-700 py-2 rounded mb-2">Log Status</button>
+                        <button onclick="clearConsole()" class="w-full bg-gray-600 hover:bg-gray-700 py-2 rounded">Clear Console</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Polling Status -->
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">Polling Status</h2>
+                <div id="polling-status-display" class="space-y-2 text-sm">
+                    <!-- Status will be populated here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Console Output -->
+        <div class="mt-8 bg-gray-800 p-6 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">Console Output</h2>
+            <div class="bg-black p-4 rounded text-green-400 font-mono text-sm h-64 overflow-y-auto" id="console-output">
+                <div>Console output will appear here...</div>
+                <div>Open browser console (F12) for detailed logs</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock polling system for testing
+        let testPollInterval = null;
+        let testPollCount = 0;
+        
+        // Override console.log to capture output
+        const originalConsoleLog = console.log;
+        const consoleOutput = document.getElementById('console-output');
+        
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'mb-1';
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${args.join(' ')}`;
+            consoleOutput.appendChild(logEntry);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+        
+        // Mock pollSession function
+        function mockPollSession() {
+            testPollCount++;
+            console.log(`🔄 Mock poll #${testPollCount} executed`);
+            
+            // Simulate some processing time
+            setTimeout(() => {
+                console.log(`✅ Mock poll #${testPollCount} completed`);
+            }, Math.random() * 1000 + 500); // 500-1500ms
+        }
+        
+        function startTestPolling() {
+            if (testPollInterval) {
+                console.log('⚠️ Polling already active');
+                return;
+            }
+            
+            testPollInterval = setInterval(mockPollSession, 5000);
+            console.log('🔄 Test polling started:', {
+                interval: '5000ms (5 seconds)',
+                pollInterval: testPollInterval,
+                timestamp: new Date().toISOString()
+            });
+            
+            updateStatusDisplay();
+        }
+        
+        function stopTestPolling() {
+            if (!testPollInterval) {
+                console.log('⚠️ No polling to stop');
+                return;
+            }
+            
+            console.log('🛑 Test polling stopped:', {
+                pollInterval: testPollInterval,
+                totalPolls: testPollCount,
+                timestamp: new Date().toISOString()
+            });
+            
+            clearInterval(testPollInterval);
+            testPollInterval = null;
+            updateStatusDisplay();
+        }
+        
+        function restartTestPolling() {
+            const wasActive = testPollInterval !== null;
+            if (wasActive) {
+                stopTestPolling();
+            }
+            
+            setTimeout(() => {
+                startTestPolling();
+                console.log('🔄 Test polling restarted');
+            }, 100);
+        }
+        
+        function updateStatusDisplay() {
+            const statusDiv = document.getElementById('polling-status-display');
+            statusDiv.innerHTML = `
+                <div class="p-2 bg-gray-700 rounded">
+                    <strong>Status:</strong> ${testPollInterval ? '🟢 Active' : '🔴 Stopped'}
+                </div>
+                <div class="p-2 bg-gray-700 rounded">
+                    <strong>Total Polls:</strong> ${testPollCount}
+                </div>
+                <div class="p-2 bg-gray-700 rounded">
+                    <strong>Interval:</strong> 5000ms (5 seconds)
+                </div>
+                <div class="p-2 bg-gray-700 rounded">
+                    <strong>Last Poll:</strong> ${testPollCount > 0 ? new Date().toLocaleTimeString() : 'Never'}
+                </div>
+            `;
+        }
+        
+        function clearConsole() {
+            consoleOutput.innerHTML = '<div>Console cleared...</div>';
+        }
+        
+        // Initialize
+        updateStatusDisplay();
+        console.log('🧪 Test polling logging initialized');
+        console.log('📊 Use the controls to test polling behavior');
+        console.log('📈 Check browser console (F12) for detailed frequency tracking');
+    </script>
+</body>
+</html> 

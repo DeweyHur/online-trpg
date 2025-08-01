@@ -31,6 +31,7 @@ const LANGUAGES_KO = {
     // Messages
     gmThinking: "GM이 생각하고 있습니다...",
     joinMessage: "{name}님이 모험에 참가했습니다!",
+    playerLeftMessage: "{name}님이 모험을 떠났습니다.",
     systemError: "시스템 오류",
     error: "오류",
 
@@ -68,6 +69,7 @@ const LANGUAGES_KO = {
 
     // Turn system
     membersTitle: "멤버",
+    membersHelpText: "플레이어를 우클릭하여 세션에서 제거할 수 있습니다.",
     promptMode: "행동 모드",
     chatMode: "채팅 모드",
     promptPlaceholder: "어떤 행동을 취하시겠습니까? (마크다운 형식 지원)",
@@ -76,6 +78,7 @@ const LANGUAGES_KO = {
     sendChatButton: "채팅 보내기",
     toggleModeButton: "모드 전환",
     removePlayerButton: "플레이어 제거",
+    confirmRemovePlayer: "{name}을(를) 세션에서 제거하시겠습니까?",
 
     // Turn system prompts
     turnPrompt: "현재 세션 멤버들: {playerList}\n\n다음 플레이어의 차례입니다: ${currentTurn}$\n\n이 플레이어가 행동할 차례입니다. 다른 플레이어들은 기다려주세요.\n\n플레이어의 행동 후, ${Turn=PlayerName}으로 다음 플레이어의 차례를 설정해주세요. 멤버 목록에 있는 플레이어만 사용하세요.",

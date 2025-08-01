@@ -45,6 +45,22 @@
         .player-indigo { color: #6366f1; }
         .player-emerald { color: #059669; }
         
+        /* Highlighted player names in chat */
+        .markdown-content .player-red,
+        .markdown-content .player-blue,
+        .markdown-content .player-green,
+        .markdown-content .player-yellow,
+        .markdown-content .player-purple,
+        .markdown-content .player-pink,
+        .markdown-content .player-indigo,
+        .markdown-content .player-emerald {
+            font-weight: 600;
+            text-shadow: 0 0 8px currentColor;
+            border-radius: 0.25rem;
+            padding: 0.125rem 0.25rem;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+        
         /* Markdown styling */
         .markdown-content {
             line-height: 1.6;
@@ -185,6 +201,10 @@
                      <div id="player-info" class="hidden">
                          <p class="text-sm"><span data-i18n="playingAsLabel">Playing as:</span> <span id="player-name-display" class="font-semibold"></span></p>
                      </div>
+                     <div id="polling-status" class="text-xs text-gray-500">
+                         <span id="polling-indicator" class="inline-block w-2 h-2 rounded-full bg-gray-500 mr-1"></span>
+                         <span id="polling-text">Polling: 5s</span>
+                     </div>
                  </div>
             </div>
             
@@ -195,6 +215,9 @@
                     <h3 class="text-lg font-semibold mb-3 text-indigo-400" data-i18n="membersTitle">Members</h3>
                     <div id="members-list" class="space-y-1">
                         <!-- Members will be populated here -->
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-gray-600">
+                        <p class="text-xs text-gray-400" data-i18n="membersHelpText">Right-click on a player to remove them from the session.</p>
                     </div>
                 </div>
                 
@@ -436,6 +459,58 @@
             return result.session;
         }
 
+        // Function to highlight player names in text with their colors
+        function highlightPlayerNames(text) {
+            if (!window.currentSession || !window.currentSession.players) {
+                console.log('⚠️ No session data available for highlighting');
+                return text;
+            }
+            
+            // Get all player names from the current session
+            const playerNames = Object.values(window.currentSession.players);
+            
+            if (playerNames.length === 0) {
+                console.log('⚠️ No players found in session for highlighting');
+                return text;
+            }
+            
+            console.log('🎯 Players to highlight:', playerNames);
+            
+            // Create a copy of the text to modify
+            let highlightedText = text;
+            let highlightCount = 0;
+            
+            // Sort player names by length (longest first) to avoid partial matches
+            const sortedPlayerNames = playerNames.sort((a, b) => b.length - a.length);
+            
+            // Replace each player name with a colored version
+            sortedPlayerNames.forEach(playerName => {
+                if (playerName && playerName.trim()) {
+                    const playerColor = getPlayerColor(playerName);
+                    // Escape special regex characters in player name
+                    const escapedName = playerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    
+                    // Create a more robust regex that handles Korean and Unicode characters
+                    // Use a simple approach: match the name with surrounding non-word characters
+                    const regex = new RegExp(`(^|[^\\w])${escapedName}([^\\w]|$)`, 'gi');
+                    
+                    const matches = highlightedText.match(regex);
+                    if (matches) {
+                        highlightCount += matches.length;
+                        console.log(`🎯 Found ${matches.length} match(es) for player: ${playerName}`);
+                    }
+                    // Replace with captured groups preserved
+                    highlightedText = highlightedText.replace(regex, `$1<span class="${playerColor} font-semibold">${playerName}</span>$2`);
+                }
+            });
+            
+            if (highlightCount > 0) {
+                console.log(`🎨 Highlighted ${highlightCount} player name(s) in text`);
+            }
+            
+            return highlightedText;
+        }
+
         // --- UI & GAME LOGIC ---
         function displayMessage({ text, type, author = 'GM' }) {
             const messageEl = document.createElement('div');
@@ -471,8 +546,12 @@
             
             messageEl.classList.add(bgColor, textColor, 'p-3', 'rounded-lg', 'shadow');
             
+            // Highlight player names in the text before parsing markdown
+            // Apply to all message types, not just player messages
+            const highlightedText = highlightPlayerNames(text);
+            
             // Parse markdown and render it
-            const markdownText = marked.parse(text);
+            const markdownText = marked.parse(highlightedText);
             messageEl.innerHTML = `${authorPrefix}<div class="markdown-content">${markdownText}</div>`;
             
             chatLog.appendChild(messageEl);
@@ -545,8 +624,13 @@
 
         function switchToSessionView() {
             if (pollInterval) {
+                console.log('🛑 Polling stopped (switching to session view):', {
+                    pollInterval: pollInterval,
+                    timestamp: new Date().toISOString()
+                });
                 clearInterval(pollInterval);
                 pollInterval = null;
+                updatePollingIndicator();
             }
                             currentSessionId = null;
                 window.currentSessionId = null;
@@ -568,8 +652,12 @@
         }
 
         async function pollSession() {
+            const pollStartTime = Date.now();
+            window.lastPollTime = new Date().toISOString();
+            trackPollingFrequency();
             try {
                 if (!window.currentSession || !window.currentSession.id) {
+                    console.log('⏭️ Skipping poll - no current session');
                     return;
                 }
                 const session = await getSession(window.currentSession.id);
@@ -580,6 +668,13 @@
                                          JSON.stringify(session.players) !== JSON.stringify(turnSystem.players);
                     
                     if (sessionChanged) {
+                        console.log('📡 Poll detected changes:', {
+                            sessionId: window.currentSession.id,
+                            chatHistoryChanged: session.chat_history !== window.chatHistory,
+                            turnChanged: session.current_turn !== turnSystem.currentTurn,
+                            playersChanged: JSON.stringify(session.players) !== JSON.stringify(turnSystem.players),
+                            timestamp: new Date().toISOString()
+                        });
                         updateGlobalVariables(session);
                         
                         // Store previous turn before updating
@@ -601,6 +696,21 @@
                         
                         // Update UI components
                         memberManager.updateMembersDisplay();
+                        
+                        // Re-render chat history with updated player highlighting
+                        const previousPlayers = turnSystem.players ? Object.values(turnSystem.players) : [];
+                        const currentPlayers = session.players ? Object.values(session.players) : [];
+                        const playersChanged = JSON.stringify(previousPlayers.sort()) !== JSON.stringify(currentPlayers.sort());
+                        
+                        if (playersChanged && session.players && Object.keys(session.players).length > 0) {
+                            console.log('🔄 Re-rendering chat after player list change:', {
+                                previous: previousPlayers,
+                                current: currentPlayers
+                            });
+                            setTimeout(() => {
+                                reRenderChatHistory();
+                            }, 50); // Small delay to ensure member list is updated
+                        }
                         
                         // Reset manual mode if turn changed, but only if user isn't actively typing
                         if (turnChanged) {
@@ -644,10 +754,18 @@
                         }
                         
                         window.chatHistory = newChatHistory;
+                    } else {
+                        console.log('📡 Poll completed - no changes detected');
                     }
                 }
             } catch (error) {
-                console.error('Error polling session:', error);
+                console.error('❌ Error polling session:', error);
+            } finally {
+                const pollDuration = Date.now() - pollStartTime;
+                console.log('⏱️ Poll completed:', {
+                    duration: `${pollDuration}ms`,
+                    timestamp: new Date().toISOString()
+                });
             }
         }
 
@@ -715,6 +833,14 @@
                         });
                     });
                 }
+                
+                // Re-render chat history with player highlighting after session data is available
+                setTimeout(() => {
+                    if (window.currentSession && window.currentSession.players) {
+                        console.log('🔄 Re-rendering chat history with player highlighting');
+                        reRenderChatHistory();
+                    }
+                }, 100);
                 
                 characterModal.classList.remove('hidden');
                 console.log('Character modal shown for joining session');
@@ -792,6 +918,13 @@
                 
                 // Start polling for updates
                 pollInterval = setInterval(pollSession, 5000);
+                console.log('🔄 Polling started:', {
+                    interval: '5000ms (5 seconds)',
+                    pollInterval: pollInterval,
+                    sessionId: currentSessionId,
+                    timestamp: new Date().toISOString()
+                });
+                updatePollingIndicator();
 
             } catch (error) {
                 console.error("Error joining game:", error);
@@ -929,11 +1062,22 @@
 
         // Function to restart polling
         function restartPolling() {
+            const previousInterval = pollInterval;
             if (pollInterval) {
                 clearInterval(pollInterval);
+                console.log('🛑 Polling stopped:', {
+                    previousInterval: previousInterval,
+                    timestamp: new Date().toISOString()
+                });
             }
             pollInterval = setInterval(pollSession, 5000);
-            console.log('Polling restarted:', pollInterval);
+            console.log('🔄 Polling restarted:', {
+                interval: '5000ms (5 seconds)',
+                pollInterval: pollInterval,
+                previousInterval: previousInterval,
+                timestamp: new Date().toISOString()
+            });
+            updatePollingIndicator();
         }
 
         // Function to update global variables from current session
@@ -1021,8 +1165,117 @@
             updateTooltips();
         };
 
+        // Function to get polling status
+        function getPollingStatus() {
+            return {
+                isActive: pollInterval !== null,
+                interval: pollInterval,
+                frequency: '5000ms (5 seconds)',
+                lastPoll: window.lastPollTime || 'Never',
+                sessionId: window.currentSessionId
+            };
+        }
+
+        // Function to log polling status
+        function logPollingStatus() {
+            const status = getPollingStatus();
+            console.log('📊 Polling Status:', status);
+            return status;
+        }
+
+        // Function to update polling status indicator
+        function updatePollingIndicator() {
+            const indicator = document.getElementById('polling-indicator');
+            const text = document.getElementById('polling-text');
+            
+            if (pollInterval) {
+                indicator.className = 'inline-block w-2 h-2 rounded-full bg-green-500 mr-1 animate-pulse';
+                text.textContent = 'Polling: 5s';
+            } else {
+                indicator.className = 'inline-block w-2 h-2 rounded-full bg-gray-500 mr-1';
+                text.textContent = 'Polling: Stopped';
+            }
+        }
+
+        // Function to re-render chat history with player highlighting
+        function reRenderChatHistory() {
+            if (!window.chatHistory || window.chatHistory.length === 0) {
+                return;
+            }
+            
+            console.log('🔄 Re-rendering chat history with player highlighting');
+            
+            // Clear the chat log
+            chatLog.innerHTML = '';
+            
+            // Re-display all messages with highlighting
+            window.chatHistory.forEach(msg => {
+                displayMessage({ 
+                    text: msg.parts[0].text, 
+                    type: msg.role === 'model' ? 'gm' : 'player', 
+                    author: msg.author || (msg.role === 'model' ? 'GM' : 'Player') 
+                });
+            });
+            
+            // Scroll to bottom
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        // Function to check if player list has changed and trigger re-rendering
+        function checkPlayerListChanges(previousPlayers, currentPlayers) {
+            if (!previousPlayers || !currentPlayers) return false;
+            
+            const prevSorted = [...previousPlayers].sort();
+            const currSorted = [...currentPlayers].sort();
+            
+            return JSON.stringify(prevSorted) !== JSON.stringify(currSorted);
+        }
+
+        // Function to track polling frequency
+        function trackPollingFrequency() {
+            const now = Date.now();
+            if (!window.pollingHistory) {
+                window.pollingHistory = [];
+            }
+            
+            window.pollingHistory.push(now);
+            
+            // Keep only last 20 polls for frequency calculation
+            if (window.pollingHistory.length > 20) {
+                window.pollingHistory = window.pollingHistory.slice(-20);
+            }
+            
+            // Calculate average frequency
+            if (window.pollingHistory.length > 1) {
+                const intervals = [];
+                for (let i = 1; i < window.pollingHistory.length; i++) {
+                    intervals.push(window.pollingHistory[i] - window.pollingHistory[i-1]);
+                }
+                const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+                
+                console.log('📈 Polling frequency:', {
+                    averageInterval: `${Math.round(avgInterval)}ms`,
+                    expectedInterval: '5000ms',
+                    deviation: `${Math.round((avgInterval - 5000) / 50)}%`,
+                    totalPolls: window.pollingHistory.length
+                });
+            }
+        }
+
+        // Make functions available globally for debugging
+        window.getPollingStatus = getPollingStatus;
+        window.logPollingStatus = logPollingStatus;
+        window.trackPollingFrequency = trackPollingFrequency;
+        window.reRenderChatHistory = reRenderChatHistory;
+        window.checkPlayerListChanges = checkPlayerListChanges;
+
         // Initialize the app
         console.log('App initialized');
+        console.log('💡 Debug commands available:');
+        console.log('  - window.reRenderChatHistory() - Re-render chat with highlighting');
+        console.log('  - window.logPollingStatus() - Check polling status');
+        console.log('  - window.getPollingStatus() - Get detailed polling info');
+        console.log('  - window.checkPlayerListChanges(prev, curr) - Check if player list changed');
         }
 
         // Initialize when DOM is ready

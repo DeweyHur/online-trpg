@@ -31,6 +31,7 @@ const LANGUAGES_EN = {
     // Messages
     gmThinking: "GM is thinking...",
     joinMessage: "{name} has joined the adventure!",
+    playerLeftMessage: "{name} has left the adventure.",
     systemError: "SYSTEM ERROR",
     error: "ERROR",
 
@@ -68,6 +69,7 @@ const LANGUAGES_EN = {
 
     // Turn system
     membersTitle: "Members",
+    membersHelpText: "Right-click on a player to remove them from the session.",
     promptMode: "Action Mode",
     chatMode: "Chat Mode",
     promptPlaceholder: "What action do you take? (Supports markdown formatting)",
@@ -76,6 +78,7 @@ const LANGUAGES_EN = {
     sendChatButton: "Send Chat",
     toggleModeButton: "Toggle Mode",
     removePlayerButton: "Remove Player",
+    confirmRemovePlayer: "Are you sure you want to remove {name} from the session?",
 
     // Turn system prompts
     turnPrompt: "Current session members: {playerList}\n\nIt's now the turn of: ${currentTurn}$\n\nThis player should take their action now. Other players please wait.\n\nAfter the player's action, please respond with ${Turn=PlayerName} to set the next player's turn. Only use players who are in the member list.",
