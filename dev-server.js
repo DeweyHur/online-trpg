@@ -79,6 +79,18 @@ const server = http.createServer(async (req, res) => {
         } else if (pathname.startsWith('/api/')) {
             // Handle API requests
             await handleApiRequest(req, res, pathname, method);
+        } else if (pathname.endsWith('.js') || pathname.endsWith('.css')) {
+            // Serve static files
+            const filePath = path.join(__dirname, pathname.substring(1));
+            if (fs.existsSync(filePath)) {
+                const content = fs.readFileSync(filePath, 'utf8');
+                const contentType = pathname.endsWith('.js') ? 'application/javascript' : 'text/css';
+                res.writeHead(200, { 'Content-Type': contentType });
+                res.end(content);
+            } else {
+                res.writeHead(404);
+                res.end('File not found');
+            }
         } else {
             res.writeHead(404);
             res.end('Not Found');

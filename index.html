@@ -135,18 +135,25 @@
 
     <div id="app" class="container mx-auto p-4 md:p-8">
 
+        <!-- Language Selector -->
+        <div class="flex justify-end mb-4">
+            <select id="language-selector" class="bg-gray-700 text-white px-3 py-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="en">English</option>
+                <option value="ko">한국어</option>
+            </select>
+        </div>
 
         <!-- Session Creation / Joining View -->
         <div id="session-view" class="max-w-lg mx-auto bg-gray-800 p-8 rounded-lg shadow-lg">
-            <h1 class="text-3xl font-bold mb-6 text-center text-indigo-400">Multiplayer TRPG</h1>
+            <h1 class="text-3xl font-bold mb-6 text-center text-indigo-400" data-i18n="mainTitle">Multiplayer TRPG</h1>
             
             <!-- Create Session Section -->
             <div id="create-session-section">
-                <h2 class="text-2xl font-semibold mb-4">Create a New Session</h2>
+                <h2 class="text-2xl font-semibold mb-4" data-i18n="createSessionTitle">Create a New Session</h2>
                 <div class="space-y-4">
-                    <input id="gemini-api-key" type="password" placeholder="Enter your Gemini API Key" class="w-full bg-gray-700 text-white p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <textarea id="starting-prompt" placeholder="Describe the starting background and who you are..." class="w-full bg-gray-700 text-white p-3 rounded-md h-32 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
-                    <button id="create-session-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">Create Session</button>
+                    <input id="gemini-api-key" type="password" data-i18n="geminiApiKeyPlaceholder" placeholder="Enter your Gemini API Key" class="w-full bg-gray-700 text-white p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <textarea id="starting-prompt" data-i18n="startingPromptPlaceholder" placeholder="Describe the starting background and who you are..." class="w-full bg-gray-700 text-white p-3 rounded-md h-32 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <button id="create-session-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300" data-i18n="createSessionButton">Create Session</button>
                 </div>
             </div>
 
@@ -154,10 +161,10 @@
 
             <!-- Join Session Section -->
             <div id="join-session-section">
-                <h2 class="text-2xl font-semibold mb-4">Join an Existing Session</h2>
+                <h2 class="text-2xl font-semibold mb-4" data-i18n="joinSessionTitle">Join an Existing Session</h2>
                 <div class="space-y-4">
-                    <input id="session-id-input" type="text" placeholder="Enter Session ID" class="w-full bg-gray-700 text-white p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <button id="join-session-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">Join Session</button>
+                    <input id="session-id-input" type="text" data-i18n="sessionIdPlaceholder" placeholder="Enter Session ID" class="w-full bg-gray-700 text-white p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button id="join-session-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-300" data-i18n="joinSessionButton">Join Session</button>
                 </div>
             </div>
         </div>
@@ -165,11 +172,11 @@
         <!-- Game View -->
         <div id="game-view" class="hidden">
             <div class="flex justify-between items-center mb-4">
-                 <h1 class="text-3xl font-bold text-indigo-400">TRPG Session</h1>
+                 <h1 class="text-3xl font-bold text-indigo-400" data-i18n="gameTitle">TRPG Session</h1>
                  <div class="flex items-center space-x-4">
-                     <p class="text-sm text-gray-400">Session ID: <span id="session-id-display" class="font-mono bg-gray-700 px-2 py-1 rounded-md"></span></p>
+                     <p class="text-sm text-gray-400"><span data-i18n="sessionIdLabel">Session ID:</span> <span id="session-id-display" class="font-mono bg-gray-700 px-2 py-1 rounded-md"></span></p>
                      <div id="player-info" class="hidden">
-                         <p class="text-sm">Playing as: <span id="player-name-display" class="font-semibold"></span></p>
+                         <p class="text-sm"><span data-i18n="playingAsLabel">Playing as:</span> <span id="player-name-display" class="font-semibold"></span></p>
                      </div>
                  </div>
             </div>
@@ -177,9 +184,9 @@
             <!-- Character Creation Modal -->
             <div id="character-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center hidden z-50">
                 <div class="bg-gray-800 p-8 rounded-lg shadow-lg max-w-sm w-full">
-                    <h2 class="text-2xl font-bold mb-4">Create Your Character</h2>
-                    <input id="character-name" type="text" placeholder="Enter your character's name" class="w-full bg-gray-700 text-white p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <button id="create-character-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">Join Game</button>
+                    <h2 class="text-2xl font-bold mb-4" data-i18n="createCharacterTitle">Create Your Character</h2>
+                    <input id="character-name" type="text" data-i18n="characterNamePlaceholder" placeholder="Enter your character's name" class="w-full bg-gray-700 text-white p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button id="create-character-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300" data-i18n="joinGameButton">Join Game</button>
                 </div>
             </div>
 
@@ -197,33 +204,36 @@
             <div class="space-y-2">
                 <!-- Formatting Toolbar -->
                 <div class="format-toolbar">
-                    <button class="format-btn" data-format="bold" title="Bold (Ctrl+B)">B</button>
-                    <button class="format-btn" data-format="italic" title="Italic (Ctrl+I)">I</button>
-                    <button class="format-btn" data-format="code" title="Code">`</button>
-                    <button class="format-btn" data-format="quote" title="Quote">"</button>
-                    <button class="format-btn" data-format="link" title="Link">🔗</button>
-                    <button class="format-btn" data-format="list" title="List">•</button>
-                    <button class="format-btn" data-format="heading" title="Heading">H</button>
-                    <button id="preview-toggle" class="format-btn" title="Toggle Preview">👁</button>
+                    <button class="format-btn" data-format="bold" data-i18n-title="boldTooltip" title="Bold (Ctrl+B)">B</button>
+                    <button class="format-btn" data-format="italic" data-i18n-title="italicTooltip" title="Italic (Ctrl+I)">I</button>
+                    <button class="format-btn" data-format="code" data-i18n-title="codeTooltip" title="Code">`</button>
+                    <button class="format-btn" data-format="quote" data-i18n-title="quoteTooltip" title="Quote">"</button>
+                    <button class="format-btn" data-format="link" data-i18n-title="linkTooltip" title="Link">🔗</button>
+                    <button class="format-btn" data-format="list" data-i18n-title="listTooltip" title="List">•</button>
+                    <button class="format-btn" data-format="heading" data-i18n-title="headingTooltip" title="Heading">H</button>
+                    <button id="preview-toggle" class="format-btn" data-i18n-title="previewTooltip" title="Toggle Preview">👁</button>
                 </div>
                 
                 <!-- Input Area -->
                 <div class="flex space-x-4">
                     <div class="flex-grow space-y-2">
-                        <textarea id="player-action" placeholder="What do you do? (Supports markdown formatting)" class="w-full bg-gray-700 text-white p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" rows="3"></textarea>
+                        <textarea id="player-action" data-i18n="playerActionPlaceholder" placeholder="What do you do? (Supports markdown formatting)" class="w-full bg-gray-700 text-white p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" rows="3"></textarea>
                         <div id="preview-area" class="hidden bg-gray-700 text-white p-3 rounded-md min-h-[4rem] border border-gray-600"></div>
                     </div>
-                    <button id="send-action-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 self-end">Send</button>
+                    <button id="send-action-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 self-end" data-i18n="sendButton">Send</button>
                 </div>
             </div>
              <div class="mt-4 text-center">
-                <button id="leave-session-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">Leave Session</button>
+                <button id="leave-session-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition duration-300" data-i18n="leaveSessionButton">Leave Session</button>
             </div>
         </div>
     </div>
 
+    <script src="languages.js"></script>
     <script>
-        // --- DOM ELEMENTS ---
+        // Initialize app when DOM is ready
+        function initializeApp() {
+            // --- DOM ELEMENTS ---
         const sessionView = document.getElementById('session-view');
         const gameView = document.getElementById('game-view');
         const createSessionBtn = document.getElementById('create-session-btn');
@@ -240,6 +250,7 @@
         const previewToggle = document.getElementById('preview-toggle');
         const previewArea = document.getElementById('preview-area');
         const scrollToBottomBtn = document.getElementById('scroll-to-bottom');
+        const languageSelector = document.getElementById('language-selector');
 
         // --- APP STATE ---
         let currentSessionId = null;
@@ -339,7 +350,7 @@
         }
 
         async function callGemini(prompt, apiKey) {
-            displayMessage({ text: 'GM is thinking...', type: 'system' });
+            displayMessage({ text: languageManager.getText('gmThinking'), type: 'system' });
             
             try {
                 const result = await apiCall('/gemini', 'POST', {
@@ -351,7 +362,7 @@
                 return result.response;
             } catch (error) {
                 console.error("Gemini API Error:", error);
-                displayMessage({ text: `GM Error: ${error.message}`, type: 'error' });
+                displayMessage({ text: languageManager.getText('gmError', { error: error.message }), type: 'error' });
                 return null;
             }
         }
@@ -387,7 +398,7 @@
                 case 'system':
                     bgColor = 'bg-yellow-900';
                     textColor = 'text-yellow-200';
-                    authorPrefix = `<em>[SYSTEM]</em>: `;
+                    authorPrefix = `<em>[${languageManager.getText('systemError')}]</em>: `;
                     break;
                 case 'player':
                     bgColor = 'bg-blue-900';
@@ -399,7 +410,7 @@
                 case 'error':
                      bgColor = 'bg-red-900';
                     textColor = 'text-red-200';
-                    authorPrefix = `<strong>[ERROR]</strong>: `;
+                    authorPrefix = `<strong>[${languageManager.getText('error')}]</strong>: `;
                     break;
                 case 'gm':
                     bgColor = 'bg-gray-700';
@@ -438,11 +449,11 @@
                 btnContainer.className = 'flex justify-end space-x-4';
 
                 const yesBtn = document.createElement('button');
-                yesBtn.textContent = 'Yes';
+                yesBtn.textContent = languageManager.getText('yes');
                 yesBtn.className = 'bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition duration-300';
                 
                 const noBtn = document.createElement('button');
-                noBtn.textContent = 'No';
+                noBtn.textContent = languageManager.getText('no');
                 noBtn.className = 'bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-300';
 
                 yesBtn.onclick = () => {
@@ -527,7 +538,7 @@
             const startPrompt = document.getElementById('starting-prompt').value.trim();
 
             if (!apiKey || !startPrompt) {
-                createCustomConfirm("API Key and Starting Prompt are required. OK?");
+                createCustomConfirm(languageManager.getText('apiKeyRequired'));
                 return;
             }
 
@@ -558,14 +569,14 @@
 
             } catch (error) {
                 console.error("Error creating session:", error);
-                displayMessage({ text: `Could not create session: ${error.message}`, type: 'error' });
+                displayMessage({ text: languageManager.getText('couldNotCreateSession', { error: error.message }), type: 'error' });
             }
         });
 
         joinSessionBtn.addEventListener('click', async () => {
             const sessionId = document.getElementById('session-id-input').value.trim();
             if (!sessionId) {
-                displayMessage({ text: 'Please enter a Session ID.', type: 'error' });
+                displayMessage({ text: languageManager.getText('sessionIdRequired'), type: 'error' });
                 return;
             }
 
@@ -591,14 +602,14 @@
                 console.log('Character modal shown for joining session');
             } catch (error) {
                 console.error("Error joining session:", error);
-                displayMessage({ text: `Error joining session: ${error.message}`, type: 'error' });
+                displayMessage({ text: languageManager.getText('errorJoiningSession', { error: error.message }), type: 'error' });
             }
         });
 
         createCharacterBtn.addEventListener('click', async () => {
             const name = document.getElementById('character-name').value.trim();
             if (!name) {
-                createCustomConfirm("Please enter a character name. OK?");
+                createCustomConfirm(languageManager.getText('characterNameRequired'));
                 return;
             }
             characterName = name;
@@ -615,7 +626,7 @@
 
                 // Update players and add join message
                 const updatedPlayers = { ...(currentSession.players || {}), [userId]: characterName };
-                const joinMessage = `${characterName} has joined the adventure!`;
+                const joinMessage = languageManager.getText('joinMessage', { name: characterName });
                 const updatedChatHistory = [
                     ...chatHistory,
                     { role: "user", parts: [{ text: joinMessage }], author: 'SYSTEM' }
@@ -640,7 +651,7 @@
 
             } catch (error) {
                 console.error("Error joining game:", error);
-                displayMessage({text: `Could not join game: ${error.message}`, type: 'error'});
+                displayMessage({text: languageManager.getText('couldNotJoinSession', { error: error.message }), type: 'error'});
             }
         });
 
@@ -686,7 +697,7 @@
 
             } catch (error) {
                 console.error("Error sending action:", error);
-                displayMessage({text: `Error: ${error.message}`, type: 'error'});
+                displayMessage({text: languageManager.getText('errorSendingAction', { error: error.message }), type: 'error'});
             } finally {
                 playerActionInput.disabled = false;
                 sendActionBtn.disabled = false;
@@ -745,7 +756,7 @@
             if (text.trim()) {
                 previewArea.innerHTML = `<div class="markdown-content">${marked.parse(text)}</div>`;
             } else {
-                previewArea.innerHTML = '<em class="text-gray-400">Preview will appear here...</em>';
+                previewArea.innerHTML = `<em class="text-gray-400">${languageManager.getText('previewPlaceholder')}</em>`;
             }
         }
 
@@ -769,15 +780,48 @@
         });
 
         leaveSessionBtn.addEventListener('click', async () => {
-             const leave = await createCustomConfirm("Are you sure you want to leave the session?");
+             const leave = await createCustomConfirm(languageManager.getText('leaveSessionConfirm'));
              if (leave) {
                 switchToSessionView();
             }
         });
 
+        // Initialize language manager
+        window.languageManager = new window.LanguageManager();
+        
+        // Language selector functionality
+        languageSelector.value = languageManager.currentLanguage;
+        languageSelector.addEventListener('change', (e) => {
+            languageManager.setLanguage(e.target.value);
+        });
+
+        // Update tooltips when language changes
+        function updateTooltips() {
+            document.querySelectorAll('[data-i18n-title]').forEach(element => {
+                const key = element.getAttribute('data-i18n-title');
+                const tooltip = languageManager.getText(key);
+                element.title = tooltip;
+            });
+        }
+
+        // Override the language manager's updateUI to also update tooltips
+        const originalUpdateUI = languageManager.updateUI;
+        languageManager.updateUI = function() {
+            originalUpdateUI.call(this);
+            updateTooltips();
+        };
+
         // Initialize the app
         userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
         console.log('User initialized:', userId);
+        }
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
     </script>
 </body>
 </html> 
