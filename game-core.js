@@ -146,11 +146,11 @@ async function pollSession() {
         const session = await getSession(window.currentSession.id);
         if (session) {
             const newChatHistory = session.chat_history || [];
-            
+
             // Check if turnSystem exists before accessing its properties
             const currentTurn = turnSystem ? turnSystem.currentTurn : null;
             const currentPlayers = turnSystem ? turnSystem.players : {};
-            
+
             const sessionChanged = session.chat_history !== window.chatHistory ||
                 session.current_turn !== currentTurn ||
                 JSON.stringify(session.players) !== JSON.stringify(currentPlayers);
@@ -224,39 +224,49 @@ async function pollSession() {
                         });
                     }
 
-                    // Only add new messages instead of re-rendering everything
-                    if (newChatHistory.length > window.chatHistory.length) {
-                        const newMessages = newChatHistory.slice(window.chatHistory.length);
-                        for (const msg of newMessages) {
-                            displayMessage({
-                                text: msg.parts[0].text,
-                                type: msg.role === 'model' ? 'gm' : 'player',
-                                author: msg.author || (msg.role === 'model' ? 'GM' : 'Player')
-                            });
+                                    // Only add new messages instead of re-rendering everything
+                if (newChatHistory.length > window.chatHistory.length) {
+                    const newMessages = newChatHistory.slice(window.chatHistory.length);
+                    console.log('📡 Processing new messages:', newMessages.length);
+                    
+                    for (const msg of newMessages) {
+                        console.log('📡 Processing message:', msg);
+                        displayMessage({
+                            text: msg.parts[0].text,
+                            type: msg.role === 'model' ? 'gm' : 'player',
+                            author: msg.author || (msg.role === 'model' ? 'GM' : 'Player')
+                        });
 
-                            // Process commands in GM messages
-                            if (msg.role === 'model') {
-                                const commandUpdates = turnSystem.processCommands(msg.parts[0].text);
-                                if (Object.keys(commandUpdates).length > 0) {
-                                    // Update session with command changes
-                                    await updateSession(window.currentSession.id, commandUpdates);
-                                }
+                        // Process commands in GM messages
+                        if (msg.role === 'model') {
+                            const commandUpdates = turnSystem.processCommands(msg.parts[0].text);
+                            if (Object.keys(commandUpdates).length > 0) {
+                                // Update session with command changes
+                                await updateSession(window.currentSession.id, commandUpdates);
                             }
                         }
                     }
                 } else {
+                    console.log('📡 No new messages to display');
+                }
+                                } else {
                     console.log('⚠️ Turn system not initialized, skipping turn-related updates');
                     
                     // Still update chat history even if turn system isn't ready
                     if (newChatHistory.length > window.chatHistory.length) {
                         const newMessages = newChatHistory.slice(window.chatHistory.length);
+                        console.log('📡 Processing new messages (fallback):', newMessages.length);
+                        
                         for (const msg of newMessages) {
+                            console.log('📡 Processing message (fallback):', msg);
                             displayMessage({
                                 text: msg.parts[0].text,
                                 type: msg.role === 'model' ? 'gm' : 'player',
                                 author: msg.author || (msg.role === 'model' ? 'GM' : 'Player')
                             });
                         }
+                    } else {
+                        console.log('📡 No new messages to display (fallback)');
                     }
                 }
 

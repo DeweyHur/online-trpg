@@ -124,6 +124,8 @@ function highlightPlayerNames(text) {
 
 // --- MESSAGE DISPLAY ---
 function displayMessage({ text, type, author = 'GM' }) {
+    console.log('📝 Displaying message:', { text, type, author });
+    
     const messageEl = document.createElement('div');
     messageEl.classList.add('mb-4');
     
@@ -166,6 +168,12 @@ function displayMessage({ text, type, author = 'GM' }) {
     messageEl.innerHTML = `${authorPrefix}<div class="markdown-content">${markdownText}</div>`;
     
     const chatLog = document.getElementById('chat-log');
+    if (!chatLog) {
+        console.error('❌ Chat log element not found!');
+        return;
+    }
+    
+    console.log('📝 Adding message to chat log:', messageEl.innerHTML);
     chatLog.appendChild(messageEl);
     
     // Only auto-scroll if user is already at the bottom (within 50px)
@@ -173,6 +181,8 @@ function displayMessage({ text, type, author = 'GM' }) {
     if (isAtBottom) {
         chatLog.scrollTop = chatLog.scrollHeight;
     }
+    
+    console.log('📝 Message added successfully. Chat log children:', chatLog.children.length);
 }
 
 // --- MODAL & CONFIRMATION ---
