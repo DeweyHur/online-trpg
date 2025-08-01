@@ -102,7 +102,7 @@ function switchToGameView(sessionId) {
 
     memberManager.initialize('members-list');
     inputModeManager.initialize('player-action', 'input-mode-indicator', 'send-action-btn');
-    
+
     // Display initial chat history if available
     if (window.chatHistory && window.chatHistory.length > 0) {
         displayInitialChatHistory();
@@ -301,13 +301,13 @@ function updateGlobalVariables(session) {
 
 function displayInitialChatHistory() {
     console.log('📝 Displaying initial chat history:', window.chatHistory.length, 'messages');
-    
+
     // Clear existing chat
     const chatLog = document.getElementById('chat-log');
     if (chatLog) {
         chatLog.innerHTML = '';
     }
-    
+
     // Display all messages in chat history
     if (window.chatHistory && window.chatHistory.length > 0) {
         window.chatHistory.forEach(msg => {
@@ -318,6 +318,9 @@ function displayInitialChatHistory() {
             });
         });
         console.log('📝 Initial chat history displayed successfully');
+        
+        // Scroll to bottom after displaying all messages
+        chatLog.scrollTop = chatLog.scrollHeight;
     } else {
         console.log('📝 No initial chat history to display');
     }
