@@ -56,7 +56,7 @@ function initializeApp() {
 
             // Start polling
             restartPolling();
-            
+
             // Display initial chat history (including the messages we just created)
             displayInitialChatHistory();
 
@@ -191,6 +191,16 @@ function initializeApp() {
     // Scroll to bottom
     scrollToBottomBtn.addEventListener('click', () => {
         chatLog.scrollTop = chatLog.scrollHeight;
+    });
+
+    // Show/hide scroll to bottom button based on scroll position
+    chatLog.addEventListener('scroll', () => {
+        const isAtBottom = chatLog.scrollHeight - chatLog.clientHeight - chatLog.scrollTop < 50;
+        if (isAtBottom) {
+            scrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none');
+        } else {
+            scrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none');
+        }
     });
 
     // Language selector
