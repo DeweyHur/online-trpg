@@ -78,8 +78,8 @@ const LANGUAGES_EN = {
     removePlayerButton: "Remove Player",
 
     // Turn system prompts
-    turnPrompt: "Current session members: {playerList}\n\nIt's now the turn of: ${currentTurn}$\n\nThis player should take their action now. Other players please wait.",
-    chatPrompt: "Current session members: {playerList}\n\nIt's currently {currentTurn}'s turn.\nYou are {currentPlayerName}.\n\nThis is general chat. Do not proceed with the game as no action is being taken.",
+    turnPrompt: "Current session members: {playerList}\n\nIt's now the turn of: ${currentTurn}$\n\nThis player should take their action now. Other players please wait.\n\nAfter the player's action, please respond with ${Turn=PlayerName} to set the next player's turn. Only use players who are in the member list.",
+    chatPrompt: "Current session members: {playerList}\n\nIt's currently {currentTurn}'s turn.\nYou are {currentPlayerName}.\n\nThis is general chat. Do not proceed with the game as no action is being taken.\n\nAfter the player's action, please respond with ${Turn=PlayerName} to set the next player's turn. Only use players who are in the member list.",
     waitingText: "waiting",
     noPlayersText: "No players"
 };

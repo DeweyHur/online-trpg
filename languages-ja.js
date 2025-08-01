@@ -79,8 +79,8 @@ const LANGUAGES_JA = {
     removePlayerButton: "プレイヤー削除",
 
     // Turn system prompts
-    turnPrompt: "現在のセッションメンバー: {playerList}\n\n次のプレイヤーの番です: ${currentTurn}$\n\nこのプレイヤーが行動を取る番です。他のプレイヤーはお待ちください。",
-    chatPrompt: "現在のセッションメンバー: {playerList}\n\n現在 {currentTurn} の番です。\nあなたは {currentPlayerName} です。\n\nこれは一般的なチャットです。行動を取らないのでゲームを進行しないでください。",
+    turnPrompt: "現在のセッションメンバー: {playerList}\n\n次のプレイヤーの番です: ${currentTurn}$\n\nこのプレイヤーが行動を取る番です。他のプレイヤーはお待ちください。\n\nプレイヤーの行動後、${Turn=PlayerName}で次のプレイヤーの番を設定してください。メンバーリストにいるプレイヤーのみ使用してください。",
+    chatPrompt: "現在のセッションメンバー: {playerList}\n\n現在 {currentTurn} の番です。\nあなたは {currentPlayerName} です。\n\nこれは一般的なチャットです。行動を取らないのでゲームを進行しないでください。\n\nプレイヤーの行動後、${Turn=PlayerName}で次のプレイヤーの番を設定してください。メンバーリストにいるプレイヤーのみ使用してください。",
     waitingText: "待機中",
     noPlayersText: "プレイヤーなし"
 };

@@ -78,8 +78,8 @@ const LANGUAGES_KO = {
     removePlayerButton: "플레이어 제거",
 
     // Turn system prompts
-    turnPrompt: "현재 세션 멤버들: {playerList}\n\n다음 플레이어의 차례입니다: ${currentTurn}$\n\n이 플레이어가 행동할 차례입니다. 다른 플레이어들은 기다려주세요.",
-    chatPrompt: "현재 세션 멤버들: {playerList}\n\n현재 {currentTurn}의 차례입니다. \n당신은 {currentPlayerName}입니다.\n\n이것은 일반 채팅입니다. 행동을 취하지 않으므로 게임을 진행하지 마세요.",
+    turnPrompt: "현재 세션 멤버들: {playerList}\n\n다음 플레이어의 차례입니다: ${currentTurn}$\n\n이 플레이어가 행동할 차례입니다. 다른 플레이어들은 기다려주세요.\n\n플레이어의 행동 후, ${Turn=PlayerName}으로 다음 플레이어의 차례를 설정해주세요. 멤버 목록에 있는 플레이어만 사용하세요.",
+    chatPrompt: "현재 세션 멤버들: {playerList}\n\n현재 {currentTurn}의 차례입니다. \n당신은 {currentPlayerName}입니다.\n\n이것은 일반 채팅입니다. 행동을 취하지 않으므로 게임을 진행하지 마세요.\n\n플레이어의 행동 후, ${Turn=PlayerName}으로 다음 플레이어의 차례를 설정해주세요. 멤버 목록에 있는 플레이어만 사용하세요.",
     waitingText: "대기 중",
     noPlayersText: "플레이어 없음"
 };

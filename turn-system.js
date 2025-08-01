@@ -78,6 +78,49 @@ class TurnSystem {
         return null;
     }
 
+    // Parse commands in the format ${Command=Value}
+    parseCommands(text) {
+        const commandPattern = /\$\{([^=]+)=([^}]+)\}/g;
+        const commands = [];
+        let match;
+
+        while ((match = commandPattern.exec(text)) !== null) {
+            commands.push({
+                command: match[1].trim(),
+                value: match[2].trim()
+            });
+        }
+
+        return commands;
+    }
+
+        // Process commands and update game state
+    processCommands(text) {
+        const commands = this.parseCommands(text);
+        const updates = {};
+
+        commands.forEach(cmd => {
+            switch (cmd.command.toLowerCase()) {
+                case 'turn':
+                    // Only set turn if the player exists in the session
+                    const playerNames = Object.values(this.players);
+                    if (playerNames.includes(cmd.value)) {
+                        this.currentTurn = cmd.value;
+                        this.updateTurnStatus();
+                        updates.current_turn = cmd.value;
+                    } else {
+                        console.warn(`Cannot set turn to ${cmd.value} - player not in session. Available players: ${playerNames.join(', ')}`);
+                    }
+                    break;
+                // Add more commands here as needed
+                default:
+                    console.warn(`Unknown command: ${cmd.command} = ${cmd.value}`);
+            }
+        });
+
+        return updates;
+    }
+
     // Update turn order when players join/leave
     updateTurnOrder() {
         // Remove duplicates from turn order

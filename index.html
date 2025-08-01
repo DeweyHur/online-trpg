@@ -288,6 +288,13 @@
         let currentSession = null;
         let pollInterval = null;
         
+        // Make variables global for debugging and polling access
+        window.currentSession = currentSession;
+        window.chatHistory = chatHistory;
+        window.pollInterval = pollInterval;
+        window.userId = userId;
+        window.characterName = characterName;
+        
         // Turn system instances
         let turnSystem = null;
         let memberManager = null;
@@ -520,7 +527,8 @@
         }
 
         function switchToGameView(sessionId) {
-            currentSessionId = sessionId;
+                            currentSessionId = sessionId;
+                window.currentSessionId = sessionId;
             sessionView.classList.add('hidden');
             gameView.classList.remove('hidden');
             sessionIdDisplay.textContent = sessionId;
@@ -540,7 +548,8 @@
                 clearInterval(pollInterval);
                 pollInterval = null;
             }
-            currentSessionId = null;
+                            currentSessionId = null;
+                window.currentSessionId = null;
             currentSession = null;
             characterName = null;
             chatHistory = [];
@@ -560,16 +569,18 @@
 
         async function pollSession() {
             try {
-                const session = await getSession(currentSessionId);
+                if (!window.currentSession || !window.currentSession.id) {
+                    return;
+                }
+                const session = await getSession(window.currentSession.id);
                 if (session) {
                     const newChatHistory = session.chat_history || [];
-                    const sessionChanged = session.chat_history !== chatHistory || 
+                    const sessionChanged = session.chat_history !== window.chatHistory || 
                                          session.current_turn !== turnSystem.currentTurn ||
                                          JSON.stringify(session.players) !== JSON.stringify(turnSystem.players);
                     
                     if (sessionChanged) {
-                        currentSession = session;
-                        window.currentSession = session; // Make global for color consistency
+                        updateGlobalVariables(session);
                         
                         // Store previous turn before updating
                         const previousTurn = turnSystem.currentTurn;
@@ -591,10 +602,17 @@
                         // Update UI components
                         memberManager.updateMembersDisplay();
                         
-                        // Reset manual mode if turn changed, otherwise respect user's choice
+                        // Reset manual mode if turn changed, but only if user isn't actively typing
                         if (turnChanged) {
-                            inputModeManager.resetManualMode();
-                            inputModeManager.updateMode();
+                            const inputElement = document.getElementById('player-action');
+                            const isUserTyping = inputElement && (inputElement === document.activeElement || inputElement.value.trim().length > 0);
+                            
+                            if (!isUserTyping) {
+                                inputModeManager.resetManualMode();
+                                inputModeManager.updateMode();
+                            } else {
+                                console.log('Skipping mode reset - user is actively typing');
+                            }
                         }
                         
                         // Initialize player colors for existing players
@@ -605,18 +623,27 @@
                         }
                         
                         // Only add new messages instead of re-rendering everything
-                        if (newChatHistory.length > chatHistory.length) {
-                            const newMessages = newChatHistory.slice(chatHistory.length);
-                            newMessages.forEach(msg => {
+                        if (newChatHistory.length > window.chatHistory.length) {
+                            const newMessages = newChatHistory.slice(window.chatHistory.length);
+                            for (const msg of newMessages) {
                                 displayMessage({ 
                                     text: msg.parts[0].text, 
                                     type: msg.role === 'model' ? 'gm' : 'player', 
                                     author: msg.author || (msg.role === 'model' ? 'GM' : 'Player') 
                                 });
-                            });
+                                
+                                // Process commands in GM messages
+                                if (msg.role === 'model') {
+                                    const commandUpdates = turnSystem.processCommands(msg.parts[0].text);
+                                    if (Object.keys(commandUpdates).length > 0) {
+                                        // Update session with command changes
+                                        await updateSession(window.currentSession.id, commandUpdates);
+                                    }
+                                }
+                            }
                         }
                         
-                        chatHistory = newChatHistory;
+                        window.chatHistory = newChatHistory;
                     }
                 }
             } catch (error) {
@@ -637,9 +664,7 @@
             try {
                 // Create session via server
                 const session = await createSession(apiKey, startPrompt);
-                currentSessionId = session.id;
-                currentSession = session; // Set the current session
-                window.currentSession = session; // Make global for color consistency
+                updateGlobalVariables(session);
                 
                 const initialUserMessage = { role: "user", parts: [{ text: startPrompt }], author: 'SYSTEM' };
                 chatHistory.push(initialUserMessage);
@@ -654,9 +679,9 @@
                 ];
                 
                 // Update session via server
-                await updateSession(currentSessionId, { chat_history: initialHistory });
+                await updateSession(window.currentSession.id, { chat_history: initialHistory });
 
-                switchToGameView(currentSessionId);
+                switchToGameView(window.currentSession.id);
                 characterModal.classList.remove('hidden');
                 console.log('Character modal shown for creating session');
 
@@ -675,8 +700,7 @@
 
             try {
                 const session = await getSession(sessionId);
-                currentSession = session;
-                window.currentSession = session; // Make global for color consistency
+                updateGlobalVariables(session);
                 chatHistory = session.chat_history || [];
                 
                 switchToGameView(sessionId);
@@ -771,6 +795,7 @@
 
             } catch (error) {
                 console.error("Error joining game:", error);
+                console.error("Error stack:", error.stack);
                 displayMessage({text: languageManager.getText('couldNotJoinSession', { error: error.message }), type: 'error'});
             }
         });
@@ -817,14 +842,23 @@
                         ];
                         sessionUpdateData.chat_history = finalChatHistory;
                         
-                        // Check if GM response contains turn indicator and advance turn
-                        if (turnSystem.hasTurnIndicator(gmResponse)) {
-                            turnSystem.nextTurn();
+                        // Process commands in GM response and update game state
+                        const commandUpdates = turnSystem.processCommands(gmResponse);
+                        if (Object.keys(commandUpdates).length > 0) {
                             sessionUpdateData = {
                                 ...sessionUpdateData,
-                                ...turnSystem.getSessionData()
+                                ...commandUpdates
                             };
                         }
+                    }
+                } else {
+                    // In chat mode, also process commands in the player's message
+                    const commandUpdates = turnSystem.processCommands(actionText);
+                    if (Object.keys(commandUpdates).length > 0) {
+                        sessionUpdateData = {
+                            ...sessionUpdateData,
+                            ...commandUpdates
+                        };
                     }
                 }
 
@@ -876,6 +910,38 @@
         scrollToBottomBtn.addEventListener('click', () => {
             chatLog.scrollTop = chatLog.scrollHeight;
         });
+
+        // Temporary function to manually process commands in chat history
+        function manuallyProcessCommands() {
+            console.log('Manually processing commands in chat history...');
+            chatHistory.forEach((msg, index) => {
+                if (msg.role === 'model' && msg.parts && msg.parts[0] && msg.parts[0].text) {
+                    console.log(`Processing message ${index}:`, msg.parts[0].text);
+                    const commandUpdates = turnSystem.processCommands(msg.parts[0].text);
+                    if (Object.keys(commandUpdates).length > 0) {
+                        console.log('Command updates found:', commandUpdates);
+                        // Update session with command changes
+                        updateSession(currentSessionId, commandUpdates);
+                    }
+                }
+            });
+        }
+
+        // Function to restart polling
+        function restartPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+            }
+            pollInterval = setInterval(pollSession, 2000);
+            console.log('Polling restarted:', pollInterval);
+        }
+
+        // Function to update global variables from current session
+        function updateGlobalVariables(session) {
+            if (session) {
+                window.currentSession = session;
+            }
+        }
 
         // Show/hide scroll-to-bottom button based on scroll position
         chatLog.addEventListener('scroll', () => {
