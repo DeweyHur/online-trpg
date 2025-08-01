@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multiplayer TRPG - Server Gateway</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -27,16 +28,113 @@
             max-width: 400px;
             width: 90%;
         }
+        
+        /* Player color classes */
+        .player-red { color: #ef4444; }
+        .player-blue { color: #3b82f6; }
+        .player-green { color: #10b981; }
+        .player-yellow { color: #f59e0b; }
+        .player-purple { color: #8b5cf6; }
+        .player-pink { color: #ec4899; }
+        .player-indigo { color: #6366f1; }
+        .player-emerald { color: #059669; }
+        
+        /* Markdown styling */
+        .markdown-content {
+            line-height: 1.6;
+        }
+        .markdown-content strong {
+            font-weight: 600;
+            color: #fbbf24;
+        }
+        .markdown-content em {
+            font-style: italic;
+            color: #a78bfa;
+        }
+        .markdown-content code {
+            background-color: rgba(156, 163, 175, 0.2);
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875em;
+            color: #fbbf24;
+        }
+        .markdown-content pre {
+            background-color: rgba(156, 163, 175, 0.1);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+            border: 1px solid rgba(156, 163, 175, 0.2);
+        }
+        .markdown-content pre code {
+            background: none;
+            padding: 0;
+        }
+        .markdown-content blockquote {
+            border-left: 4px solid #6366f1;
+            padding-left: 1rem;
+            margin: 0.5rem 0;
+            font-style: italic;
+            background-color: rgba(99, 102, 241, 0.1);
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+        }
+        .markdown-content a {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+        .markdown-content a:hover {
+            color: #93c5fd;
+        }
+        .markdown-content ul, .markdown-content ol {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+        .markdown-content li {
+            margin: 0.25rem 0;
+        }
+        .markdown-content h1, .markdown-content h2, .markdown-content h3, 
+        .markdown-content h4, .markdown-content h5, .markdown-content h6 {
+            margin: 0.75rem 0 0.5rem 0;
+            font-weight: 600;
+            color: #fbbf24;
+        }
+        .markdown-content h1 { font-size: 1.5rem; }
+        .markdown-content h2 { font-size: 1.25rem; }
+        .markdown-content h3 { font-size: 1.125rem; }
+        
+        /* Formatting toolbar */
+        .format-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .format-btn {
+            background-color: #374151;
+            color: #d1d5db;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .format-btn:hover {
+            background-color: #4b5563;
+            color: white;
+        }
+        .format-btn.active {
+            background-color: #6366f1;
+            color: white;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white">
 
     <div id="app" class="container mx-auto p-4 md:p-8">
-        <!-- Server Gateway Notice -->
-        <div class="max-w-lg mx-auto mb-6 bg-green-900 p-4 rounded-lg shadow-lg">
-            <h2 class="text-lg font-semibold text-green-200 mb-2">🔧 Server Gateway Mode</h2>
-            <p class="text-sm text-green-100">This app uses the development server as a backend gateway. No client-side Supabase configuration needed!</p>
-        </div>
+
 
         <!-- Session Creation / Joining View -->
         <div id="session-view" class="max-w-lg mx-auto bg-gray-800 p-8 rounded-lg shadow-lg">
@@ -68,11 +166,16 @@
         <div id="game-view" class="hidden">
             <div class="flex justify-between items-center mb-4">
                  <h1 class="text-3xl font-bold text-indigo-400">TRPG Session</h1>
-                 <p class="text-sm text-gray-400">Session ID: <span id="session-id-display" class="font-mono bg-gray-700 px-2 py-1 rounded-md"></span></p>
+                 <div class="flex items-center space-x-4">
+                     <p class="text-sm text-gray-400">Session ID: <span id="session-id-display" class="font-mono bg-gray-700 px-2 py-1 rounded-md"></span></p>
+                     <div id="player-info" class="hidden">
+                         <p class="text-sm">Playing as: <span id="player-name-display" class="font-semibold"></span></p>
+                     </div>
+                 </div>
             </div>
            
             <!-- Character Creation Modal -->
-            <div id="character-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center hidden">
+            <div id="character-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center hidden z-50">
                 <div class="bg-gray-800 p-8 rounded-lg shadow-lg max-w-sm w-full">
                     <h2 class="text-2xl font-bold mb-4">Create Your Character</h2>
                     <input id="character-name" type="text" placeholder="Enter your character's name" class="w-full bg-gray-700 text-white p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -81,14 +184,37 @@
             </div>
 
             <!-- Chat/Game Log -->
-            <div id="chat-log" class="bg-gray-800 rounded-lg p-4 h-96 overflow-y-auto mb-4 border border-gray-700">
-                <!-- Messages will be appended here -->
+            <div class="relative">
+                <div id="chat-log" class="bg-gray-800 rounded-lg p-4 h-96 overflow-y-auto mb-4 border border-gray-700">
+                    <!-- Messages will be appended here -->
+                </div>
+                <button id="scroll-to-bottom" class="absolute bottom-6 right-6 bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full shadow-lg transition-all duration-300 opacity-0 pointer-events-none">
+                    ↓
+                </button>
             </div>
 
-            <!-- Player Action Input -->
-            <div class="flex space-x-4">
-                <input id="player-action" type="text" placeholder="What do you do?" class="flex-grow bg-gray-700 text-white p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <button id="send-action-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">Send</button>
+            <!-- Player Action Input with Markdown Formatting -->
+            <div class="space-y-2">
+                <!-- Formatting Toolbar -->
+                <div class="format-toolbar">
+                    <button class="format-btn" data-format="bold" title="Bold (Ctrl+B)">B</button>
+                    <button class="format-btn" data-format="italic" title="Italic (Ctrl+I)">I</button>
+                    <button class="format-btn" data-format="code" title="Code">`</button>
+                    <button class="format-btn" data-format="quote" title="Quote">"</button>
+                    <button class="format-btn" data-format="link" title="Link">🔗</button>
+                    <button class="format-btn" data-format="list" title="List">•</button>
+                    <button class="format-btn" data-format="heading" title="Heading">H</button>
+                    <button id="preview-toggle" class="format-btn" title="Toggle Preview">👁</button>
+                </div>
+                
+                <!-- Input Area -->
+                <div class="flex space-x-4">
+                    <div class="flex-grow space-y-2">
+                        <textarea id="player-action" placeholder="What do you do? (Supports markdown formatting)" class="w-full bg-gray-700 text-white p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" rows="3"></textarea>
+                        <div id="preview-area" class="hidden bg-gray-700 text-white p-3 rounded-md min-h-[4rem] border border-gray-600"></div>
+                    </div>
+                    <button id="send-action-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 self-end">Send</button>
+                </div>
             </div>
              <div class="mt-4 text-center">
                 <button id="leave-session-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">Leave Session</button>
@@ -109,6 +235,11 @@
         const playerActionInput = document.getElementById('player-action');
         const characterModal = document.getElementById('character-modal');
         const createCharacterBtn = document.getElementById('create-character-btn');
+        const playerInfo = document.getElementById('player-info');
+        const playerNameDisplay = document.getElementById('player-name-display');
+        const previewToggle = document.getElementById('preview-toggle');
+        const previewArea = document.getElementById('preview-area');
+        const scrollToBottomBtn = document.getElementById('scroll-to-bottom');
 
         // --- APP STATE ---
         let currentSessionId = null;
@@ -117,6 +248,72 @@
         let chatHistory = [];
         let currentSession = null;
         let pollInterval = null;
+        
+        // Player colors array
+        const playerColors = [
+            'player-red', 'player-blue', 'player-green', 'player-yellow', 
+            'player-purple', 'player-pink', 'player-indigo', 'player-emerald'
+        ];
+        let playerColorMap = {};
+
+        // --- MARKDOWN & FORMATTING FUNCTIONS ---
+        function getPlayerColor(playerName) {
+            if (!playerColorMap[playerName]) {
+                const colorIndex = Object.keys(playerColorMap).length % playerColors.length;
+                playerColorMap[playerName] = playerColors[colorIndex];
+            }
+            return playerColorMap[playerName];
+        }
+
+        function formatText(format) {
+            const textarea = playerActionInput;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const selectedText = textarea.value.substring(start, end);
+            
+            let replacement = '';
+            let cursorOffset = 0;
+            
+            switch(format) {
+                case 'bold':
+                    replacement = `**${selectedText}**`;
+                    cursorOffset = 2;
+                    break;
+                case 'italic':
+                    replacement = `*${selectedText}*`;
+                    cursorOffset = 1;
+                    break;
+                case 'code':
+                    replacement = `\`${selectedText}\``;
+                    cursorOffset = 1;
+                    break;
+                case 'quote':
+                    replacement = `> ${selectedText}`;
+                    cursorOffset = 2;
+                    break;
+                case 'link':
+                    replacement = `[${selectedText}](url)`;
+                    cursorOffset = -3;
+                    break;
+                case 'list':
+                    if (selectedText) {
+                        replacement = `- ${selectedText}`;
+                        cursorOffset = 2;
+                    } else {
+                        replacement = `- `;
+                        cursorOffset = 2;
+                    }
+                    break;
+                case 'heading':
+                    replacement = `# ${selectedText}`;
+                    cursorOffset = 2;
+                    break;
+            }
+            
+            textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+            textarea.focus();
+            textarea.setSelectionRange(start + replacement.length + cursorOffset, start + replacement.length + cursorOffset);
+        }
 
         // --- SERVER API FUNCTIONS ---
         async function apiCall(endpoint, method = 'GET', data = null) {
@@ -195,6 +392,9 @@
                 case 'player':
                     bgColor = 'bg-blue-900';
                     textColor = 'text-blue-200';
+                    // Add player color class to author name
+                    const playerColor = getPlayerColor(author);
+                    authorPrefix = `<strong class="${playerColor}">[${author}]</strong>: `;
                     break;
                 case 'error':
                      bgColor = 'bg-red-900';
@@ -208,9 +408,18 @@
             }
             
             messageEl.classList.add(bgColor, textColor, 'p-3', 'rounded-lg', 'shadow');
-            messageEl.innerHTML = `${authorPrefix}${text.replace(/\n/g, '<br>')}`;
+            
+            // Parse markdown and render it
+            const markdownText = marked.parse(text);
+            messageEl.innerHTML = `${authorPrefix}<div class="markdown-content">${markdownText}</div>`;
+            
             chatLog.appendChild(messageEl);
-            chatLog.scrollTop = chatLog.scrollHeight;
+            
+            // Only auto-scroll if user is already at the bottom (within 50px)
+            const isAtBottom = chatLog.scrollHeight - chatLog.clientHeight - chatLog.scrollTop < 50;
+            if (isAtBottom) {
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
         }
 
         function createCustomConfirm(message) {
@@ -272,6 +481,9 @@
             characterName = null;
             chatHistory = [];
             chatLog.innerHTML = '';
+            playerInfo.classList.add('hidden');
+            characterModal.classList.add('hidden'); // Ensure modal is hidden
+            playerColorMap = {}; // Reset player colors
             gameView.classList.add('hidden');
             sessionView.classList.remove('hidden');
         }
@@ -280,18 +492,29 @@
             try {
                 const session = await getSession(currentSessionId);
                 if (session && session.chat_history !== chatHistory) {
-                    chatHistory = session.chat_history || [];
+                    const newChatHistory = session.chat_history || [];
                     currentSession = session;
                     
-                    // Render chat history
-                    chatLog.innerHTML = '';
-                    chatHistory.forEach(msg => {
-                        displayMessage({ 
-                            text: msg.parts[0].text, 
-                            type: msg.role === 'model' ? 'gm' : 'player', 
-                            author: msg.author || (msg.role === 'model' ? 'GM' : 'Player') 
+                    // Initialize player colors for existing players
+                    if (session.players) {
+                        Object.values(session.players).forEach(playerName => {
+                            getPlayerColor(playerName);
                         });
-                    });
+                    }
+                    
+                    // Only add new messages instead of re-rendering everything
+                    if (newChatHistory.length > chatHistory.length) {
+                        const newMessages = newChatHistory.slice(chatHistory.length);
+                        newMessages.forEach(msg => {
+                            displayMessage({ 
+                                text: msg.parts[0].text, 
+                                type: msg.role === 'model' ? 'gm' : 'player', 
+                                author: msg.author || (msg.role === 'model' ? 'GM' : 'Player') 
+                            });
+                        });
+                    }
+                    
+                    chatHistory = newChatHistory;
                 }
             } catch (error) {
                 console.error('Error polling session:', error);
@@ -331,6 +554,7 @@
 
                 switchToGameView(currentSessionId);
                 characterModal.classList.remove('hidden');
+                console.log('Character modal shown for creating session');
 
             } catch (error) {
                 console.error("Error creating session:", error);
@@ -351,7 +575,20 @@
                 chatHistory = session.chat_history || [];
                 
                 switchToGameView(sessionId);
+                
+                // Display existing chat history
+                if (chatHistory.length > 0) {
+                    chatHistory.forEach(msg => {
+                        displayMessage({ 
+                            text: msg.parts[0].text, 
+                            type: msg.role === 'model' ? 'gm' : 'player', 
+                            author: msg.author || (msg.role === 'model' ? 'GM' : 'Player') 
+                        });
+                    });
+                }
+                
                 characterModal.classList.remove('hidden');
+                console.log('Character modal shown for joining session');
             } catch (error) {
                 console.error("Error joining session:", error);
                 displayMessage({ text: `Error joining session: ${error.message}`, type: 'error' });
@@ -391,6 +628,12 @@
                 });
 
                 characterModal.classList.add('hidden');
+                console.log('Character modal hidden after character creation');
+                
+                // Show player info with color
+                playerInfo.classList.remove('hidden');
+                playerNameDisplay.textContent = characterName;
+                playerNameDisplay.className = `font-semibold ${getPlayerColor(characterName)}`;
                 
                 // Start polling for updates
                 pollInterval = setInterval(pollSession, 2000);
@@ -451,9 +694,77 @@
             }
         });
 
+        // --- FORMATTING TOOLBAR EVENT LISTENERS ---
+        document.querySelectorAll('.format-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const format = btn.getAttribute('data-format');
+                if (format) {
+                    formatText(format);
+                }
+            });
+        });
+
+        // Preview toggle functionality
+        previewToggle.addEventListener('click', () => {
+            const isPreviewVisible = !previewArea.classList.contains('hidden');
+            if (isPreviewVisible) {
+                previewArea.classList.add('hidden');
+                previewToggle.classList.remove('active');
+            } else {
+                previewArea.classList.remove('hidden');
+                previewToggle.classList.add('active');
+                updatePreview();
+            }
+        });
+
+        // Update preview when typing
+        playerActionInput.addEventListener('input', () => {
+            if (!previewArea.classList.contains('hidden')) {
+                updatePreview();
+            }
+        });
+
+        // Handle scroll-to-bottom button
+        scrollToBottomBtn.addEventListener('click', () => {
+            chatLog.scrollTop = chatLog.scrollHeight;
+        });
+
+        // Show/hide scroll-to-bottom button based on scroll position
+        chatLog.addEventListener('scroll', () => {
+            const isAtBottom = chatLog.scrollHeight - chatLog.clientHeight - chatLog.scrollTop < 50;
+            if (isAtBottom) {
+                scrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none');
+            } else {
+                scrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none');
+            }
+        });
+
+        function updatePreview() {
+            const text = playerActionInput.value;
+            if (text.trim()) {
+                previewArea.innerHTML = `<div class="markdown-content">${marked.parse(text)}</div>`;
+            } else {
+                previewArea.innerHTML = '<em class="text-gray-400">Preview will appear here...</em>';
+            }
+        }
+
+        // Keyboard shortcuts for formatting
         playerActionInput.addEventListener('keydown', async (e) => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
                 await sendActionBtn.click();
+            } else if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'b':
+                        e.preventDefault();
+                        formatText('bold');
+                        break;
+                    case 'i':
+                        e.preventDefault();
+                        formatText('italic');
+                        break;
+                }
             }
         });
 

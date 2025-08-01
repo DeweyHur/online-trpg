@@ -9,6 +9,9 @@ A real-time multiplayer tabletop role-playing game that uses Google's Gemini AI 
 - 💬 Live chat with real-time updates
 - 👥 Character creation and management
 - 🔐 Session-based gameplay
+- ✨ **Rich Markdown Editor** with formatting toolbar
+- 🎨 **Player Color Coding** - each player gets a unique color
+- 👁 **Live Preview** - see your markdown formatting in real-time
 
 ## Deployment Guide
 
@@ -134,6 +137,27 @@ The application will automatically detect and use these environment variables.
 
 ### Styling
 The app uses Tailwind CSS. You can customize the appearance by modifying the CSS classes in the HTML file.
+
+### Markdown Editor Features
+The app includes a rich markdown editor with the following features:
+
+#### Formatting Options
+- **Bold** (`**text**` or Ctrl+B)
+- *Italic* (`*text*` or Ctrl+I)
+- `Code` (`` `text` ``)
+- > Quotes (`> text`)
+- [Links](url) (`[text](url)`)
+- Lists (`- item`)
+- Headings (`# heading`)
+
+#### Player Colors
+Each player is automatically assigned a unique color that appears in:
+- Player names in the chat
+- Player info display
+- Character names in messages
+
+#### Live Preview
+Toggle the preview button (👁) to see your markdown formatting in real-time before sending your message.
 
 ### AI Model
 To use a different AI model, update the `callGemini` function in the JavaScript code.
