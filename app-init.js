@@ -20,6 +20,7 @@ function initializeApp() {
     const previewArea = document.getElementById('preview-area');
     const scrollToBottomBtn = document.getElementById('scroll-to-bottom');
     const languageSelector = document.getElementById('language-selector');
+    const modeToggleBtn = document.getElementById('mode-toggle-btn');
 
     // --- EVENT LISTENERS ---
     createSessionBtn.addEventListener('click', async () => {
@@ -200,6 +201,17 @@ function initializeApp() {
             scrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none');
         } else {
             scrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none');
+        }
+    });
+
+    // Mode toggle button
+    modeToggleBtn.addEventListener('click', () => {
+        if (inputModeManager) {
+            const newMode = inputModeManager.currentMode === 'chat' ? 'prompt' : 'chat';
+            inputModeManager.setMode(newMode, true);
+            console.log('Mode toggled to:', newMode);
+        } else {
+            console.error('Input mode manager not initialized');
         }
     });
 
