@@ -791,7 +791,7 @@
                 playerNameDisplay.className = `font-semibold ${getPlayerColor(characterName)}`;
                 
                 // Start polling for updates
-                pollInterval = setInterval(pollSession, 2000);
+                pollInterval = setInterval(pollSession, 5000);
 
             } catch (error) {
                 console.error("Error joining game:", error);
@@ -932,7 +932,7 @@
             if (pollInterval) {
                 clearInterval(pollInterval);
             }
-            pollInterval = setInterval(pollSession, 2000);
+            pollInterval = setInterval(pollSession, 5000);
             console.log('Polling restarted:', pollInterval);
         }
 

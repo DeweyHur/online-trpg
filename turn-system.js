@@ -94,7 +94,7 @@ class TurnSystem {
         return commands;
     }
 
-        // Process commands and update game state
+    // Process commands and update game state
     processCommands(text) {
         const commands = this.parseCommands(text);
         const updates = {};
