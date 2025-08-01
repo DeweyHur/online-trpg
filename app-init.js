@@ -57,6 +57,17 @@ function initializeApp() {
             // Start polling
             restartPolling();
             
+            // Show character creation modal after creating session
+            setTimeout(() => {
+                const characterModal = document.getElementById('character-modal');
+                if (characterModal) {
+                    characterModal.classList.remove('hidden');
+                    console.log('Character modal shown for creating session');
+                } else {
+                    console.error('Character modal not found');
+                }
+            }, 100); // Small delay to ensure UI is ready
+            
         } catch (error) {
             console.error('Error creating session:', error);
             displayMessage({ text: languageManager.getText('sessionCreationError', { error: error.message }), type: 'error' });
@@ -83,6 +94,17 @@ function initializeApp() {
             updateGlobalVariables(session);
             switchToGameView(sessionId);
             restartPolling();
+            
+            // Show character creation modal after joining session
+            setTimeout(() => {
+                const characterModal = document.getElementById('character-modal');
+                if (characterModal) {
+                    characterModal.classList.remove('hidden');
+                    console.log('Character modal shown for joining session');
+                } else {
+                    console.error('Character modal not found');
+                }
+            }, 100); // Small delay to ensure UI is ready
             
         } catch (error) {
             console.error('Error joining session:', error);
@@ -143,12 +165,14 @@ function initializeApp() {
             return;
         }
 
+        console.log('Creating character:', name);
         characterName = name;
         window.characterName = name;
         playerNameDisplay.textContent = name;
         playerInfo.classList.remove('hidden');
         characterModal.classList.add('hidden');
         document.getElementById('character-name').value = '';
+        console.log('Character created successfully:', characterName);
     });
 
     // Preview toggle
