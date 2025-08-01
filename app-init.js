@@ -80,12 +80,11 @@ function initializeApp() {
 
     joinSessionBtn.addEventListener('click', async () => {
         const sessionId = document.getElementById('session-id-input').value.trim();
-        const apiKey = document.getElementById('join-gemini-api-key').value.trim();
 
-        console.log('Join session attempt:', { sessionId, apiKeyLength: apiKey.length });
+        console.log('Join session attempt:', { sessionId });
 
-        if (!sessionId || !apiKey) {
-            console.log('Validation failed:', { sessionId: !!sessionId, apiKey: !!apiKey });
+        if (!sessionId) {
+            console.log('Validation failed: session ID is empty');
             createCustomConfirm(languageManager.getText('sessionIdRequired'));
             return;
         }
@@ -139,8 +138,13 @@ function initializeApp() {
             playerActionInput.value = '';
             updatePreview();
 
-            // Call Gemini
-            const response = await callGemini(action, document.getElementById('gemini-api-key').value.trim());
+            // Call Gemini using the API key from the session data
+            const apiKey = window.currentSession.gemini_api_key;
+            if (!apiKey) {
+                displayMessage({ text: 'No API key found in session. Please contact the session creator.', type: 'error' });
+                return;
+            }
+            const response = await callGemini(action, apiKey);
             if (!response) return;
 
             // Add GM response to chat
