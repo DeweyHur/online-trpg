@@ -22,7 +22,7 @@ let inputModeManager = null;
 
 // Player colors array
 const playerColors = [
-    'player-red', 'player-blue', 'player-green', 'player-yellow', 
+    'player-red', 'player-blue', 'player-green', 'player-yellow',
     'player-purple', 'player-pink', 'player-indigo', 'player-emerald'
 ];
 let playerColorMap = {};
@@ -35,31 +35,31 @@ async function apiCall(endpoint, method = 'GET', data = null) {
             'Content-Type': 'application/json',
         }
     };
-    
+
     if (data) {
         options.body = JSON.stringify(data);
     }
 
     const response = await fetch(`/api${endpoint}`, options);
     const result = await response.json();
-    
+
     if (!response.ok) {
         throw new Error(result.error || 'API call failed');
     }
-    
+
     return result;
 }
 
 async function callGemini(prompt, apiKey) {
     displayMessage({ text: languageManager.getText('gmThinking'), type: 'system' });
-    
+
     try {
         const result = await apiCall('/gemini', 'POST', {
             prompt,
             apiKey,
             chatHistory: chatHistory.map(({ role, parts }) => ({ role, parts }))
         });
-        
+
         return result.response;
     } catch (error) {
         console.error("Gemini API Error:", error);
@@ -93,13 +93,13 @@ function switchToGameView(sessionId) {
     document.getElementById('session-view').classList.add('hidden');
     document.getElementById('game-view').classList.remove('hidden');
     document.getElementById('session-id-display').textContent = sessionId;
-    
+
     // Initialize turn system components
     turnSystem = new TurnSystem(languageManager);
     window.turnSystem = turnSystem; // Make global for color consistency
     memberManager = new MemberManager(turnSystem);
     inputModeManager = new InputModeManager(turnSystem, languageManager);
-    
+
     memberManager.initialize('members-list');
     inputModeManager.initialize('player-action', 'input-mode-indicator', 'send-action-btn');
 }
@@ -123,12 +123,12 @@ function switchToSessionView() {
     document.getElementById('player-info').classList.add('hidden');
     document.getElementById('character-modal').classList.add('hidden'); // Ensure modal is hidden
     playerColorMap = {}; // Reset player colors
-    
+
     // Reset turn system
     turnSystem = null;
     memberManager = null;
     inputModeManager = null;
-    
+
     document.getElementById('game-view').classList.add('hidden');
     document.getElementById('session-view').classList.remove('hidden');
 }
@@ -146,96 +146,120 @@ async function pollSession() {
         const session = await getSession(window.currentSession.id);
         if (session) {
             const newChatHistory = session.chat_history || [];
-            const sessionChanged = session.chat_history !== window.chatHistory || 
-                                 session.current_turn !== turnSystem.currentTurn ||
-                                 JSON.stringify(session.players) !== JSON.stringify(turnSystem.players);
             
+            // Check if turnSystem exists before accessing its properties
+            const currentTurn = turnSystem ? turnSystem.currentTurn : null;
+            const currentPlayers = turnSystem ? turnSystem.players : {};
+            
+            const sessionChanged = session.chat_history !== window.chatHistory ||
+                session.current_turn !== currentTurn ||
+                JSON.stringify(session.players) !== JSON.stringify(currentPlayers);
+
             if (sessionChanged) {
                 console.log('📡 Poll detected changes:', {
                     sessionId: window.currentSession.id,
                     chatHistoryChanged: session.chat_history !== window.chatHistory,
-                    turnChanged: session.current_turn !== turnSystem.currentTurn,
-                    playersChanged: JSON.stringify(session.players) !== JSON.stringify(turnSystem.players),
+                    turnChanged: session.current_turn !== currentTurn,
+                    playersChanged: JSON.stringify(session.players) !== JSON.stringify(currentPlayers),
                     timestamp: new Date().toISOString()
                 });
                 updateGlobalVariables(session);
-                
-                // Store previous turn before updating
-                const previousTurn = turnSystem.currentTurn;
-                
-                // Update turn system
-                turnSystem.initialize(session);
-                
-                // Clean up any duplicate players
-                turnSystem.cleanupDuplicatePlayers();
-                
-                // Set current player after cleanup
-                if (characterName) {
-                    turnSystem.setCurrentPlayer(characterName);
-                }
-                
-                // Check if turn actually changed
-                const turnChanged = session.current_turn !== previousTurn;
-                
-                // Update UI components
-                memberManager.updateMembersDisplay();
-                
-                // Re-render chat history with updated player highlighting
-                const previousPlayers = turnSystem.players ? Object.values(turnSystem.players) : [];
-                const currentPlayers = session.players ? Object.values(session.players) : [];
-                const playersChanged = JSON.stringify(previousPlayers.sort()) !== JSON.stringify(currentPlayers.sort());
-                
-                if (playersChanged && session.players && Object.keys(session.players).length > 0) {
-                    console.log('🔄 Re-rendering chat after player list change:', {
-                        previous: previousPlayers,
-                        current: currentPlayers
-                    });
-                    setTimeout(() => {
-                        reRenderChatHistory();
-                    }, 50); // Small delay to ensure member list is updated
-                }
-                
-                // Reset manual mode if turn changed, but only if user isn't actively typing
-                if (turnChanged) {
-                    const inputElement = document.getElementById('player-action');
-                    const isUserTyping = inputElement && (inputElement === document.activeElement || inputElement.value.trim().length > 0);
-                    
-                    if (!isUserTyping) {
-                        inputModeManager.resetManualMode();
-                        inputModeManager.updateMode();
-                    } else {
-                        console.log('Skipping mode reset - user is actively typing');
+
+                // Only update turn system if it exists
+                if (turnSystem) {
+                    // Store previous turn before updating
+                    const previousTurn = turnSystem.currentTurn;
+
+                    // Update turn system
+                    turnSystem.initialize(session);
+
+                    // Clean up any duplicate players
+                    turnSystem.cleanupDuplicatePlayers();
+
+                    // Set current player after cleanup
+                    if (characterName) {
+                        turnSystem.setCurrentPlayer(characterName);
                     }
-                }
-                
-                // Initialize player colors for existing players
-                if (session.players) {
-                    Object.values(session.players).forEach(playerName => {
-                        getPlayerColor(playerName);
-                    });
-                }
-                
-                // Only add new messages instead of re-rendering everything
-                if (newChatHistory.length > window.chatHistory.length) {
-                    const newMessages = newChatHistory.slice(window.chatHistory.length);
-                    for (const msg of newMessages) {
-                        displayMessage({ 
-                            text: msg.parts[0].text, 
-                            type: msg.role === 'model' ? 'gm' : 'player', 
-                            author: msg.author || (msg.role === 'model' ? 'GM' : 'Player') 
+
+                    // Check if turn actually changed
+                    const turnChanged = session.current_turn !== previousTurn;
+
+                    // Update UI components if memberManager exists
+                    if (memberManager) {
+                        memberManager.updateMembersDisplay();
+                    }
+
+                    // Re-render chat history with updated player highlighting
+                    const previousPlayers = turnSystem.players ? Object.values(turnSystem.players) : [];
+                    const currentPlayers = session.players ? Object.values(session.players) : [];
+                    const playersChanged = JSON.stringify(previousPlayers.sort()) !== JSON.stringify(currentPlayers.sort());
+
+                    if (playersChanged && session.players && Object.keys(session.players).length > 0) {
+                        console.log('🔄 Re-rendering chat after player list change:', {
+                            previous: previousPlayers,
+                            current: currentPlayers
                         });
-                        
-                        // Process commands in GM messages
-                        if (msg.role === 'model') {
-                            const commandUpdates = turnSystem.processCommands(msg.parts[0].text);
-                            if (Object.keys(commandUpdates).length > 0) {
-                                // Update session with command changes
-                                await updateSession(window.currentSession.id, commandUpdates);
+                        setTimeout(() => {
+                            reRenderChatHistory();
+                        }, 50); // Small delay to ensure member list is updated
+                    }
+
+                    // Reset manual mode if turn changed, but only if user isn't actively typing
+                    if (turnChanged && inputModeManager) {
+                        const inputElement = document.getElementById('player-action');
+                        const isUserTyping = inputElement && (inputElement === document.activeElement || inputElement.value.trim().length > 0);
+
+                        if (!isUserTyping) {
+                            inputModeManager.resetManualMode();
+                            inputModeManager.updateMode();
+                        } else {
+                            console.log('Skipping mode reset - user is actively typing');
+                        }
+                    }
+
+                    // Initialize player colors for existing players
+                    if (session.players) {
+                        Object.values(session.players).forEach(playerName => {
+                            getPlayerColor(playerName);
+                        });
+                    }
+
+                    // Only add new messages instead of re-rendering everything
+                    if (newChatHistory.length > window.chatHistory.length) {
+                        const newMessages = newChatHistory.slice(window.chatHistory.length);
+                        for (const msg of newMessages) {
+                            displayMessage({
+                                text: msg.parts[0].text,
+                                type: msg.role === 'model' ? 'gm' : 'player',
+                                author: msg.author || (msg.role === 'model' ? 'GM' : 'Player')
+                            });
+
+                            // Process commands in GM messages
+                            if (msg.role === 'model') {
+                                const commandUpdates = turnSystem.processCommands(msg.parts[0].text);
+                                if (Object.keys(commandUpdates).length > 0) {
+                                    // Update session with command changes
+                                    await updateSession(window.currentSession.id, commandUpdates);
+                                }
                             }
                         }
                     }
+                } else {
+                    console.log('⚠️ Turn system not initialized, skipping turn-related updates');
+                    
+                    // Still update chat history even if turn system isn't ready
+                    if (newChatHistory.length > window.chatHistory.length) {
+                        const newMessages = newChatHistory.slice(window.chatHistory.length);
+                        for (const msg of newMessages) {
+                            displayMessage({
+                                text: msg.parts[0].text,
+                                type: msg.role === 'model' ? 'gm' : 'player',
+                                author: msg.author || (msg.role === 'model' ? 'GM' : 'Player')
+                            });
+                        }
+                    }
                 }
-                
+
                 window.chatHistory = newChatHistory;
             } else {
                 console.log('📡 Poll completed - no changes detected');
@@ -264,7 +288,7 @@ function restartPolling() {
     if (pollInterval) {
         clearInterval(pollInterval);
     }
-    pollInterval = setInterval(pollSession, 2000);
+    pollInterval = setInterval(pollSession, 5000);
     updatePollingIndicator();
 }
 
@@ -306,7 +330,7 @@ function trackPollingFrequency() {
         window.pollingFrequency = [];
     }
     window.pollingFrequency.push(Date.now());
-    
+
     // Keep only last 100 polls
     if (window.pollingFrequency.length > 100) {
         window.pollingFrequency.shift();
