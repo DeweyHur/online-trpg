@@ -12,6 +12,7 @@
     <script src="languages.js"></script>
     <script src="turn-system.js"></script>
     <script src="test-turn-system.js"></script>
+    <script src="character-stats.js"></script>
     <script src="game-core.js"></script>
     <script src="ui-display.js"></script>
     <script src="app-init.js"></script>
@@ -220,7 +221,10 @@
                         <!-- Members will be populated here -->
                     </div>
                     <div class="mt-3 pt-3 border-t border-gray-600">
-                        <p class="text-xs text-gray-400" data-i18n="membersHelpText">Right-click on a player to remove them from the session.</p>
+                        <p class="text-xs text-gray-400" data-i18n="membersHelpText">Right-click on a player to view character stats and details.</p>
+                        <button id="request-stats-btn" class="mt-2 w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1 rounded transition duration-300">
+                            🤖 Request Stats for All Characters
+                        </button>
                     </div>
                 </div>
                 

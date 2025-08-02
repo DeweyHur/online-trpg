@@ -85,6 +85,11 @@ class TurnSystem {
         let match;
 
         while ((match = commandPattern.exec(text)) !== null) {
+            // Skip GeminiStats commands as they're handled by characterStatsManager
+            if (match[1].trim().toLowerCase() === 'geministats') {
+                continue;
+            }
+
             commands.push({
                 command: match[1].trim(),
                 value: match[2].trim()
@@ -98,6 +103,18 @@ class TurnSystem {
     processCommands(text) {
         const commands = this.parseCommands(text);
         const updates = {};
+
+        // Process character stats commands if stats manager exists
+        if (window.characterStatsManager) {
+            const statsUpdates = window.characterStatsManager.processCommands(text);
+            Object.assign(updates, statsUpdates);
+        }
+
+        // Process Gemini-generated commands
+        if (window.characterStatsManager) {
+            const geminiUpdates = window.characterStatsManager.processCommands(text);
+            Object.assign(updates, geminiUpdates);
+        }
 
         commands.forEach(cmd => {
             switch (cmd.command.toLowerCase()) {
@@ -167,11 +184,18 @@ class TurnSystem {
 
     // Get session data for API calls
     getSessionData() {
-        return {
+        const sessionData = {
             current_turn: this.currentTurn,
             turn_order: this.turnOrder,
             players: this.players
         };
+
+        // Include character stats data if available
+        if (window.characterStatsManager) {
+            Object.assign(sessionData, window.characterStatsManager.getSessionData());
+        }
+
+        return sessionData;
     }
 
     // Clean up duplicate players from session data
@@ -210,13 +234,36 @@ class MemberManager {
     createContextMenu() {
         this.contextMenu = document.createElement('div');
         this.contextMenu.className = 'fixed bg-gray-800 border border-gray-600 rounded-md shadow-lg z-50 hidden';
-        this.contextMenu.innerHTML = `
-            <div class="p-2">
-                <button id="remove-player-btn" class="text-red-400 hover:text-red-300 text-sm px-3 py-1 rounded hover:bg-gray-700 w-full text-left">
-                    ${this.turnSystem.languageManager.getText('removePlayerButton')}
-                </button>
-            </div>
+        this.contextMenu.style.minWidth = '250px';
+
+        // Create stats section
+        const statsSection = document.createElement('div');
+        statsSection.id = 'context-stats-section';
+        statsSection.className = 'p-3 border-b border-gray-600';
+
+        const statsTitle = document.createElement('div');
+        statsTitle.className = 'text-sm font-semibold text-indigo-400 mb-2';
+        statsTitle.textContent = 'Character Stats';
+        statsSection.appendChild(statsTitle);
+
+        const statsContent = document.createElement('div');
+        statsContent.id = 'context-stats-content';
+        statsContent.className = 'text-sm';
+        statsSection.appendChild(statsContent);
+
+        this.contextMenu.appendChild(statsSection);
+
+        // Create remove player section
+        const removeSection = document.createElement('div');
+        removeSection.id = 'context-remove-section';
+        removeSection.className = 'p-2';
+        removeSection.innerHTML = `
+            <button id="remove-player-btn" class="text-red-400 hover:text-red-300 text-sm px-3 py-1 rounded hover:bg-gray-700 w-full text-left">
+                ${this.turnSystem.languageManager.getText('removePlayerButton')}
+            </button>
         `;
+        this.contextMenu.appendChild(removeSection);
+
         document.body.appendChild(this.contextMenu);
 
         // Handle remove player action
@@ -247,6 +294,23 @@ class MemberManager {
         this.contextMenu.style.left = e.pageX + 'px';
         this.contextMenu.style.top = e.pageY + 'px';
         this.contextMenu.dataset.playerName = playerName;
+
+        // Update stats content
+        const statsContent = document.getElementById('context-stats-content');
+        if (statsContent && window.characterStatsManager) {
+            statsContent.innerHTML = window.characterStatsManager.generateDetailedStatsHTML(playerName);
+        }
+
+        // Show/hide remove option based on whether it's the current player
+        const removeSection = document.getElementById('context-remove-section');
+        if (removeSection) {
+            if (playerName === this.turnSystem.currentPlayerName) {
+                removeSection.style.display = 'none';
+            } else {
+                removeSection.style.display = 'block';
+            }
+        }
+
         this.contextMenu.classList.remove('hidden');
     }
 
@@ -266,29 +330,36 @@ class MemberManager {
 
         uniquePlayers.forEach(playerName => {
             const memberItem = document.createElement('div');
-            memberItem.className = `member-item flex items-center justify-between p-2 hover:bg-gray-700 rounded cursor-pointer ${playerName === this.turnSystem.currentTurn ? 'bg-indigo-600' : ''}`;
+            memberItem.className = `member-item p-2 hover:bg-gray-700 rounded cursor-pointer ${playerName === this.turnSystem.currentTurn ? 'bg-indigo-600' : ''}`;
 
             const playerColor = this.getPlayerColor(playerName);
             const playerBgColor = this.getPlayerBgColor(playerName);
 
+            // Get character stats if available
+            let statsHTML = '';
+            if (window.characterStatsManager) {
+                statsHTML = window.characterStatsManager.generateShortStatsHTML(playerName);
+            }
+
             memberItem.innerHTML = `
-                <div class="flex items-center space-x-2">
-                    <div class="w-3 h-3 rounded-full ${playerBgColor}"></div>
-                    <span class="text-sm ${playerColor}">${playerName}</span>
-                    ${playerName === this.turnSystem.currentTurn ? '<span class="text-xs bg-yellow-500 text-black px-1 rounded">TURN</span>' : ''}
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 rounded-full ${playerBgColor}"></div>
+                        <span class="text-sm ${playerColor}">${playerName}</span>
+                        ${playerName === this.turnSystem.currentTurn ? '<span class="text-xs bg-yellow-500 text-black px-1 rounded">TURN</span>' : ''}
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <span class="text-xs text-gray-400">${playerName === this.turnSystem.currentPlayerName ? '(You)' : ''}</span>
+                        ${playerName !== this.turnSystem.currentPlayerName ? '<span class="text-xs text-gray-500">(Right-click for details)</span>' : ''}
+                    </div>
                 </div>
-                <div class="flex items-center space-x-1">
-                    <span class="text-xs text-gray-400">${playerName === this.turnSystem.currentPlayerName ? '(You)' : ''}</span>
-                    ${playerName !== this.turnSystem.currentPlayerName ? '<span class="text-xs text-gray-500">(Right-click to remove)</span>' : ''}
-                </div>
+                ${statsHTML}
             `;
 
-            // Add context menu for removing players (except current player)
-            if (playerName !== this.turnSystem.currentPlayerName) {
-                memberItem.addEventListener('contextmenu', (e) => {
-                    this.showContextMenu(e, playerName);
-                });
-            }
+            // Add context menu for all players (for stats details)
+            memberItem.addEventListener('contextmenu', (e) => {
+                this.showContextMenu(e, playerName);
+            });
 
             this.membersContainer.appendChild(memberItem);
         });

@@ -69,7 +69,7 @@ const LANGUAGES_EN = {
 
     // Turn system
     membersTitle: "Members",
-    membersHelpText: "Right-click on a player to remove them from the session.",
+    membersHelpText: "Right-click on a player to view character stats and details.",
     promptMode: "Action Mode",
     chatMode: "Chat Mode",
     promptPlaceholder: "What action do you take? (Supports markdown formatting)",

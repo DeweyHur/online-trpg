@@ -81,11 +81,8 @@ function highlightPlayerNames(text) {
     const playerNames = Object.values(window.currentSession.players);
 
     if (playerNames.length === 0) {
-        console.log('⚠️ No players found in session for highlighting');
         return text;
     }
-
-    console.log('🎯 Players to highlight:', playerNames);
 
     // Create a copy of the text to modify
     let highlightedText = text;
@@ -108,16 +105,13 @@ function highlightPlayerNames(text) {
             const matches = highlightedText.match(regex);
             if (matches) {
                 highlightCount += matches.length;
-                console.log(`🎯 Found ${matches.length} match(es) for player: ${playerName}`);
             }
             // Replace with captured groups preserved
             highlightedText = highlightedText.replace(regex, `$1<span class="${playerColor} font-semibold">${playerName}</span>$2`);
         }
     });
 
-    if (highlightCount > 0) {
-        console.log(`🎨 Highlighted ${highlightCount} player name(s) in text`);
-    }
+    // Removed console log to reduce spam
 
     return highlightedText;
 }

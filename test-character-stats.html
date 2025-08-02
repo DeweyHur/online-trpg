@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Stats System Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="languages-en.js"></script>
+    <script src="character-stats.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .test-section {
+            border: 1px solid #374151;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .command-example {
+            background-color: #1f2937;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            margin: 0.5rem 0;
+        }
+        .stats-display {
+            background-color: #111827;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-indigo-400">Character Stats System Test</h1>
+        
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">1. Initialize Character Stats Manager</h2>
+            <button id="init-btn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Initialize Stats Manager</button>
+            <div id="init-status" class="mt-2 text-sm text-gray-400"></div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">2. Test Command Processing</h2>
+            
+            <h3 class="text-lg font-medium mb-2">Template Commands</h3>
+            <div class="command-example">${Template={"template": "fantasy"}}</div>
+            <button class="test-template-btn bg-green-600 hover:bg-green-700 px-4 py-2 rounded mr-2" data-template="fantasy">Set Fantasy Template</button>
+            <button class="test-template-btn bg-green-600 hover:bg-green-700 px-4 py-2 rounded mr-2" data-template="scifi">Set Sci-fi Template</button>
+            <button class="test-template-btn bg-green-600 hover:bg-green-700 px-4 py-2 rounded" data-template="default">Set Default Template</button>
+
+            <h3 class="text-lg font-medium mb-2 mt-4">Stats Commands</h3>
+            <div class="command-example">${Stats={"character": "Gandalf", "stats": {"HP": 45, "MP": 80, "STR": 12, "WIS": 18}}}</div>
+            <button id="test-stats-btn" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded">Test Stats Command</button>
+        </div>
+
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">3. Display Results</h2>
+            
+            <h3 class="text-lg font-medium mb-2">Current Template</h3>
+            <div id="current-template" class="text-sm text-gray-300"></div>
+            
+            <h3 class="text-lg font-medium mb-2 mt-4">Character Stats</h3>
+            <div id="character-stats" class="text-sm text-gray-300"></div>
+            
+            <h3 class="text-lg font-medium mb-2 mt-4">Short Stats Display (for member list)</h3>
+            <div id="short-stats-display" class="stats-display"></div>
+            
+            <h3 class="text-lg font-medium mb-2 mt-4">Detailed Stats Display (for context menu)</h3>
+            <div id="detailed-stats-display" class="stats-display"></div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">4. Interactive Test</h2>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2">Character Name:</label>
+                <input id="char-name-input" type="text" value="Gandalf" class="bg-gray-700 text-white px-3 py-2 rounded w-full">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2">Stats (JSON):</label>
+                <textarea id="stats-input" class="bg-gray-700 text-white px-3 py-2 rounded w-full h-32">{"HP": 45, "MP": 80, "STR": 12, "WIS": 18}</textarea>
+            </div>
+            
+            <button id="update-stats-btn" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded">Update Character Stats</button>
+        </div>
+
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">5. Session Data Export</h2>
+            <button id="export-btn" class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded">Export Session Data</button>
+            <pre id="export-data" class="mt-2 bg-gray-800 p-4 rounded text-xs overflow-x-auto"></pre>
+        </div>
+    </div>
+
+    <script>
+        let statsManager = null;
+
+        // Initialize stats manager
+        document.getElementById('init-btn').addEventListener('click', () => {
+            statsManager = new CharacterStatsManager();
+            document.getElementById('init-status').textContent = '✅ Character Stats Manager initialized';
+            updateDisplay();
+        });
+
+        // Test template commands
+        document.querySelectorAll('.test-template-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const template = btn.dataset.template;
+                const command = `\${Template={"template": "${template}"}}`;
+                console.log('Processing template command:', command);
+                
+                if (statsManager) {
+                    const updates = statsManager.processCommands(command);
+                    console.log('Template updates:', updates);
+                    updateDisplay();
+                }
+            });
+        });
+
+        // Test stats command
+        document.getElementById('test-stats-btn').addEventListener('click', () => {
+            const command = '${Stats={"character": "Gandalf", "stats": {"HP": 45, "MP": 80, "STR": 12, "WIS": 18}}}';
+            console.log('Processing stats command:', command);
+            
+            if (statsManager) {
+                const updates = statsManager.processCommands(command);
+                console.log('Stats updates:', updates);
+                updateDisplay();
+            }
+        });
+
+        // Interactive stats update
+        document.getElementById('update-stats-btn').addEventListener('click', () => {
+            const charName = document.getElementById('char-name-input').value;
+            const statsText = document.getElementById('stats-input').value;
+            
+            try {
+                const stats = JSON.parse(statsText);
+                const command = `\${Stats={"character": "${charName}", "stats": ${JSON.stringify(stats)}}}`;
+                console.log('Processing custom stats command:', command);
+                
+                if (statsManager) {
+                    const updates = statsManager.processCommands(command);
+                    console.log('Custom stats updates:', updates);
+                    updateDisplay();
+                }
+            } catch (error) {
+                alert('Invalid JSON format: ' + error.message);
+            }
+        });
+
+        // Export session data
+        document.getElementById('export-btn').addEventListener('click', () => {
+            if (statsManager) {
+                const sessionData = statsManager.getSessionData();
+                document.getElementById('export-data').textContent = JSON.stringify(sessionData, null, 2);
+            }
+        });
+
+        function updateDisplay() {
+            if (!statsManager) return;
+
+            // Update current template
+            document.getElementById('current-template').textContent = `Current Template: ${statsManager.currentTemplate}`;
+
+            // Update character stats
+            const stats = statsManager.characterStats;
+            document.getElementById('character-stats').textContent = JSON.stringify(stats, null, 2);
+
+            // Update short stats display
+            const charName = document.getElementById('char-name-input').value;
+            const shortStatsHTML = statsManager.generateShortStatsHTML(charName);
+            document.getElementById('short-stats-display').innerHTML = shortStatsHTML || '<div class="text-gray-500">No short stats available</div>';
+
+            // Update detailed stats display
+            const detailedStatsHTML = statsManager.generateDetailedStatsHTML(charName);
+            document.getElementById('detailed-stats-display').innerHTML = detailedStatsHTML;
+        }
+
+        // Auto-initialize for testing
+        document.getElementById('init-btn').click();
+    </script>
+</body>
+</html> 
