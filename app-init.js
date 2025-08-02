@@ -136,19 +136,22 @@ function initializeApp() {
             playerActionInput.value = '';
             updatePreview();
 
-            // Call Gemini using the API key from the session data
-            const apiKey = window.currentSession.gemini_api_key;
-            if (!apiKey) {
-                displayMessage({ text: 'No API key found in session. Please contact the session creator.', type: 'error' });
-                return;
-            }
-            const response = await callGemini(action, apiKey);
-            if (!response) return;
+            // Only call Gemini if in action/prompt mode
+            if (window.inputModeManager && window.inputModeManager.shouldSendToAI()) {
+                // Call Gemini using the API key from the session data
+                const apiKey = window.currentSession.gemini_api_key;
+                if (!apiKey) {
+                    displayMessage({ text: 'No API key found in session. Please contact the session creator.', type: 'error' });
+                    return;
+                }
+                const response = await callGemini(action, apiKey);
+                if (!response) return;
 
-            // Add GM response to chat
-            const gmMessage = { role: "model", parts: [{ text: response }], author: 'GM' };
-            chatHistory.push(gmMessage);
-            displayMessage({ text: response, type: 'gm', author: 'GM' });
+                // Add GM response to chat
+                const gmMessage = { role: "model", parts: [{ text: response }], author: 'GM' };
+                chatHistory.push(gmMessage);
+                displayMessage({ text: response, type: 'gm', author: 'GM' });
+            }
 
             // Update session via server
             await updateSession(window.currentSession.id, { chat_history: chatHistory });
@@ -230,9 +233,9 @@ function initializeApp() {
 
     // Mode toggle button
     modeToggleBtn.addEventListener('click', () => {
-        if (inputModeManager) {
-            const newMode = inputModeManager.currentMode === 'chat' ? 'prompt' : 'chat';
-            inputModeManager.setMode(newMode, true);
+        if (window.inputModeManager) {
+            const newMode = window.inputModeManager.currentMode === 'chat' ? 'prompt' : 'chat';
+            window.inputModeManager.setMode(newMode, true);
             console.log('Mode toggled to:', newMode);
         } else {
             console.error('Input mode manager not initialized');
@@ -259,8 +262,19 @@ function initializeApp() {
         }
     });
 
+    // Handle Korean IME composition
+    let isComposing = false;
+
+    playerActionInput.addEventListener('compositionstart', () => {
+        isComposing = true;
+    });
+
+    playerActionInput.addEventListener('compositionend', () => {
+        isComposing = false;
+    });
+
     playerActionInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
             e.preventDefault();
             sendActionBtn.click();
         }

@@ -100,6 +100,7 @@ function switchToGameView(sessionId) {
     memberManager = new MemberManager(turnSystem);
     turnSystem.memberManager = memberManager; // Attach memberManager to turnSystem
     inputModeManager = new InputModeManager(turnSystem, languageManager);
+    window.inputModeManager = inputModeManager; // Make global for access from app-init.js
 
     memberManager.initialize('members-list');
     inputModeManager.initialize('player-action', 'input-mode-indicator', 'send-action-btn');
