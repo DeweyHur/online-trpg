@@ -294,7 +294,7 @@ async function requestStatsForExistingCharacters(apiKey) {
 
     if (charactersWithoutStats.length > 0) {
         console.log('🤖 Requesting stats for existing characters without stats:', charactersWithoutStats);
-        await autoRequestCharacterStats(charactersWithoutStats, apiKey);
+        await batchRequestCharacterStats(charactersWithoutStats, apiKey);
     } else {
         console.log('✅ All characters already have stats');
         // Force template to custom if we have custom stats
@@ -307,6 +307,11 @@ async function requestStatsForExistingCharacters(apiKey) {
             }
         }
     }
+}
+
+// Helper function to get current language from language manager
+function getCurrentLanguage() {
+    return window.languageManager?.currentLanguage || 'en';
 }
 
 // Helper function to generate a prompt for asking Gemini about character stats
@@ -355,6 +360,156 @@ Guidelines:
 - Consider the genre and theme
 
 Return ONLY the JSON object, no additional text.`;
+}
+
+// Function to batch request stats for multiple characters with consistent language
+async function batchRequestCharacterStats(characterNames, apiKey) {
+    if (!apiKey || !window.characterStatsManager) {
+        console.warn('Cannot batch request stats: missing API key or stats manager');
+        return;
+    }
+
+    console.log('🤖 Batch requesting stats for characters:', characterNames);
+
+    try {
+        // Generate a context based on the current session
+        const context = window.currentSession?.starting_prompt || 'TRPG campaign';
+        const language = getCurrentLanguage();
+
+        console.log('🔍 Using current language:', language);
+
+        // Create a batch prompt for all characters
+        const prompt = generateBatchStatsPrompt(characterNames, context, language);
+        const response = await callGemini(prompt, apiKey);
+
+        if (response) {
+            try {
+                // Parse CSV response from Gemini
+                console.log('🔍 Parsing batch CSV response');
+                console.log('🔍 Raw response:', response);
+
+                const lines = response.trim().split('\n').filter(line => line.trim());
+                console.log('🔍 CSV lines:', lines);
+
+                if (lines.length < 2) {
+                    throw new Error('CSV must have at least header and one data row');
+                }
+
+                // Process all characters from the batch response
+                const characterStats = {};
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line) {
+                        const parts = line.split(',').map(part => part.trim());
+                        if (parts.length >= 3) {
+                            const [character, statName, value] = parts;
+                            if (character && statName && value) {
+                                if (!characterStats[character]) {
+                                    characterStats[character] = {};
+                                }
+                                characterStats[character][statName] = value;
+                            }
+                        }
+                    }
+                }
+
+                console.log('🔍 Parsed batch stats:', characterStats);
+
+                // Process stats for each character
+                for (const characterName of characterNames) {
+                    if (characterStats[characterName] && Object.keys(characterStats[characterName]).length > 0) {
+                        // Convert stats back to CSV format for the command
+                        const csvLines = ['character,stat_name,value'];
+                        for (const [statName, value] of Object.entries(characterStats[characterName])) {
+                            csvLines.push(`${characterName},${statName},${value}`);
+                        }
+                        const csvData = csvLines.join('\n');
+
+                        // Process the stats command using CSV format
+                        const command = `\${GeminiStats=${csvData}}`;
+                        if (window.turnSystem) {
+                            // Force the template to custom BEFORE processing commands
+                            if (window.characterStatsManager) {
+                                console.log('🔍 Setting template to custom before processing');
+                                window.characterStatsManager.currentTemplate = 'custom';
+                            }
+
+                            const updates = window.turnSystem.processCommands(command);
+                            console.log('✅ Batch-generated stats for', characterName, ':', updates);
+
+                            // Update the session with the new stats
+                            if (Object.keys(updates).length > 0) {
+                                await updateSession(window.currentSessionId, {
+                                    ...window.turnSystem.getSessionData()
+                                });
+                            }
+                        }
+                    }
+                }
+
+                // Update the member display after all stats are processed
+                if (window.turnSystem && window.turnSystem.memberManager) {
+                    console.log('🔄 Updating member display after batch stats processed');
+                    window.turnSystem.memberManager.updateMembersDisplay();
+                }
+
+            } catch (error) {
+                console.error('Error parsing batch Gemini CSV response:', error);
+                console.log('🔍 Problematic response for debugging:', response);
+            }
+        }
+
+    } catch (error) {
+        console.error('Error batch requesting stats:', error);
+    }
+}
+
+// Helper function to generate a batch prompt for multiple characters
+function generateBatchStatsPrompt(characterNames, campaignContext, language) {
+    const languageInstructions = {
+        'ko': '모든 스탯 이름과 값을 한국어로 작성해주세요. 일관된 한국어 스타일을 유지해주세요.',
+        'ja': 'すべてのステータス名と値を日本語で記述してください。一貫した日本語スタイルを維持してください。',
+        'en': 'Please write all stat names and values in English. Maintain consistent English style.'
+    };
+
+    const instruction = languageInstructions[language] || languageInstructions['en'];
+
+    return `I need you to determine appropriate character stats for multiple TRPG characters with consistent language and style.
+
+Characters: ${characterNames.join(', ')}
+Campaign Context: ${campaignContext}
+Language: ${language}
+
+${instruction}
+
+Please provide stats for ALL characters in the following CSV format:
+character,stat_name,value
+${characterNames.map(name => `${name},<stat_name_1>,<value_1>`).join('\n')}
+${characterNames.map(name => `${name},<stat_name_2>,<value_2>`).join('\n')}
+${characterNames.map(name => `${name},<stat_name_3>,<value_3>`).join('\n')}
+${characterNames.map(name => `${name},<stat_name_4>,<value_4>`).join('\n')}
+${characterNames.map(name => `${name},<stat_name_5>,<value_5>`).join('\n')}
+
+Guidelines:
+- Create 3-8 stats that are appropriate for this campaign setting
+- Use consistent stat names across all characters
+- Use consistent language (${language}) for all stat names and values
+- Use emojis for stat names to make them more visual and compact
+- Use 2/5 style ratings (like "3/5", "4/5", "2/5") for values to keep them short
+- Stats should reflect each character's unique abilities and role
+- Include the header row: character,stat_name,value
+
+Examples of emoji stat names:
+- 💪 for Strength/힘/力
+- 🧠 for Intelligence/지능/知能
+- ⚡ for Agility/민첩/敏捷
+- 🛡️ for Defense/방어/防御
+- 🔥 for Fire/화염/炎
+- ❄️ for Ice/얼음/氷
+- 🌟 for Magic/마법/魔法
+- 🎯 for Accuracy/정확도/命中
+
+Return ONLY the CSV data, no additional text.`;
 }
 
 async function createSession(geminiApiKey, startingPrompt) {
@@ -532,9 +687,9 @@ async function pollSession() {
                         // Auto-request stats for new characters
                         const apiKey = session.gemini_api_key;
                         if (apiKey) {
-                            // Run auto-request in background to avoid blocking polling
-                            autoRequestCharacterStats(newCharacters, apiKey).catch(error => {
-                                console.error('Error in auto-request stats:', error);
+                            // Run batch request in background to avoid blocking polling
+                            batchRequestCharacterStats(newCharacters, apiKey).catch(error => {
+                                console.error('Error in batch request stats:', error);
                             });
                         }
                     }

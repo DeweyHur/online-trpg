@@ -14,7 +14,7 @@ let mockSession = {
 const mockLanguageManager = {
     getText: (key) => {
         const texts = {
-            'systemError': 'SYSTEM ERROR',
+            'systemError': 'SYSTEM',
             'error': 'ERROR'
         };
         return texts[key] || key;

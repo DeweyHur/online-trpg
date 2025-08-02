@@ -33,7 +33,7 @@ const LANGUAGES_JA = {
     gmThinking: "GMが考えています...",
     joinMessage: "{name}が冒険に参加しました！",
     playerLeftMessage: "{name}が冒険を去りました。",
-    systemError: "システムエラー",
+    systemError: "システム",
     error: "エラー",
 
     // Validation messages

@@ -32,7 +32,7 @@ const LANGUAGES_EN = {
     gmThinking: "GM is thinking...",
     joinMessage: "{name} has joined the adventure!",
     playerLeftMessage: "{name} has left the adventure.",
-    systemError: "SYSTEM ERROR",
+    systemError: "SYSTEM",
     error: "ERROR",
 
     // Validation messages

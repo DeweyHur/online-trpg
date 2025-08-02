@@ -32,7 +32,7 @@ const LANGUAGES_KO = {
     gmThinking: "GM이 생각하고 있습니다...",
     joinMessage: "{name}님이 모험에 참가했습니다!",
     playerLeftMessage: "{name}님이 모험을 떠났습니다.",
-    systemError: "시스템 오류",
+    systemError: "시스템",
     error: "오류",
 
     // Validation messages

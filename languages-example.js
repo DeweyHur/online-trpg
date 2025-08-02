@@ -39,7 +39,7 @@ const LANGUAGES_ES = {
     gmThinking: "El GM está pensando...",
     joinMessage: "¡{name} se ha unido a la aventura!",
     playerLeftMessage: "{name} ha abandonado la aventura.",
-    systemError: "ERROR DEL SISTEMA",
+    systemError: "SISTEMA",
     error: "ERROR",
 
     // Validation messages

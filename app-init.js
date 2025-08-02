@@ -170,7 +170,7 @@ function initializeApp() {
     });
 
     // Character creation
-    createCharacterBtn.addEventListener('click', () => {
+    createCharacterBtn.addEventListener('click', async () => {
         const name = document.getElementById('character-name').value.trim();
         if (!name) {
             alert(languageManager.getText('characterNameRequired'));
@@ -191,6 +191,18 @@ function initializeApp() {
                 // Add player with a unique key
                 const playerKey = `player_${Date.now()}`;
                 window.turnSystem.players[playerKey] = name;
+
+                // Update the session on the server with the new player
+                if (window.currentSessionId) {
+                    try {
+                        await updateSession(window.currentSessionId, {
+                            ...window.turnSystem.getSessionData()
+                        });
+                        console.log('✅ Player added to session:', name);
+                    } catch (error) {
+                        console.error('Error updating session with new player:', error);
+                    }
+                }
             }
 
             const playerColor = window.turnSystem.memberManager.getPlayerColor(name);
