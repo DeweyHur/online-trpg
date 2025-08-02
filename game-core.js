@@ -98,6 +98,7 @@ function switchToGameView(sessionId) {
     turnSystem = new TurnSystem(languageManager);
     window.turnSystem = turnSystem; // Make global for color consistency
     memberManager = new MemberManager(turnSystem);
+    turnSystem.memberManager = memberManager; // Attach memberManager to turnSystem
     inputModeManager = new InputModeManager(turnSystem, languageManager);
 
     memberManager.initialize('members-list');
@@ -161,13 +162,13 @@ async function pollSession() {
                 JSON.stringify(session.players) !== JSON.stringify(currentPlayers);
 
             if (sessionChanged) {
-                console.log('📡 Poll detected changes:', {
-                    sessionId: window.currentSession.id,
-                    chatHistoryChanged: session.chat_history !== window.chatHistory,
-                    turnChanged: session.current_turn !== currentTurn,
-                    playersChanged: JSON.stringify(session.players) !== JSON.stringify(currentPlayers),
-                    timestamp: new Date().toISOString()
-                });
+                // console.log('📡 Poll detected changes:', {
+                //     sessionId: window.currentSession.id,
+                //     chatHistoryChanged: session.chat_history !== window.chatHistory,
+                //     turnChanged: session.current_turn !== currentTurn,
+                //     playersChanged: JSON.stringify(session.players) !== JSON.stringify(currentPlayers),
+                //     timestamp: new Date().toISOString()
+                // });
                 updateGlobalVariables(session);
 
                 // Only update turn system if it exists
@@ -200,10 +201,10 @@ async function pollSession() {
                     const playersChanged = JSON.stringify(previousPlayers.sort()) !== JSON.stringify(currentPlayers.sort());
 
                     if (playersChanged && session.players && Object.keys(session.players).length > 0) {
-                        console.log('🔄 Re-rendering chat after player list change:', {
-                            previous: previousPlayers,
-                            current: currentPlayers
-                        });
+                        // console.log('🔄 Re-rendering chat after player list change:', {
+                        //     previous: previousPlayers,
+                        //     current: currentPlayers
+                        // });
                         setTimeout(() => {
                             reRenderChatHistory();
                         }, 50); // Small delay to ensure member list is updated
@@ -232,10 +233,10 @@ async function pollSession() {
                     // Only add new messages instead of re-rendering everything
                     if (newChatHistory.length > window.chatHistory.length) {
                         const newMessages = newChatHistory.slice(window.chatHistory.length);
-                        console.log('📡 Processing new messages:', newMessages.length);
+                        // console.log('📡 Processing new messages:', newMessages.length);
 
                         for (const msg of newMessages) {
-                            console.log('📡 Processing message:', msg);
+                            // console.log('📡 Processing message:', msg);
                             displayMessage({
                                 text: msg.parts[0].text,
                                 type: msg.role === 'model' ? 'gm' : 'player',
@@ -252,7 +253,7 @@ async function pollSession() {
                             }
                         }
                     } else {
-                        console.log('📡 No new messages to display');
+                        // console.log('📡 No new messages to display');
                     }
                 } else {
                     console.log('⚠️ Turn system not initialized, skipping turn-related updates');

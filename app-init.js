@@ -66,7 +66,6 @@ function initializeApp() {
                 const characterModal = document.getElementById('character-modal');
                 if (characterModal) {
                     characterModal.classList.remove('hidden');
-                    console.log('Character modal shown for creating session');
                 } else {
                     console.error('Character modal not found');
                 }
@@ -106,7 +105,6 @@ function initializeApp() {
                 const characterModal = document.getElementById('character-modal');
                 if (characterModal) {
                     characterModal.classList.remove('hidden');
-                    console.log('Character modal shown for joining session');
                 } else {
                     console.error('Character modal not found');
                 }
@@ -176,14 +174,33 @@ function initializeApp() {
             return;
         }
 
-        console.log('Creating character:', name);
         characterName = name;
         window.characterName = name;
         playerNameDisplay.textContent = name;
+
+        // Apply player color to the player name display
+        if (window.turnSystem && window.turnSystem.memberManager) {
+            // Add the player to turnSystem if not already there
+            if (!window.turnSystem.players || !Object.values(window.turnSystem.players).includes(name)) {
+                if (!window.turnSystem.players) {
+                    window.turnSystem.players = {};
+                }
+                // Add player with a unique key
+                const playerKey = `player_${Date.now()}`;
+                window.turnSystem.players[playerKey] = name;
+            }
+
+            const playerColor = window.turnSystem.memberManager.getPlayerColor(name);
+            const playerNameDisplay = document.getElementById('player-name-display');
+
+            if (playerNameDisplay) {
+                playerNameDisplay.className = 'font-semibold ' + playerColor;
+            }
+        }
+
         playerInfo.classList.remove('hidden');
         characterModal.classList.add('hidden');
         document.getElementById('character-name').value = '';
-        console.log('Character created successfully:', characterName);
     });
 
     // Preview toggle
