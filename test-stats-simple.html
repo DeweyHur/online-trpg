@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Stats Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Simple Stats Test</h1>
+        
+        <div class="bg-gray-800 p-4 rounded mb-4">
+            <button id="test-btn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+                Test Stats Processing
+            </button>
+        </div>
+
+        <div class="bg-gray-800 p-4 rounded">
+            <h2 class="text-lg font-semibold mb-2">Results:</h2>
+            <div id="results" class="text-sm"></div>
+        </div>
+    </div>
+
+    <script src="character-stats.js"></script>
+    <script>
+        let statsManager;
+
+        function initialize() {
+            statsManager = new CharacterStatsManager();
+            statsManager.initialize({
+                character_stats: {},
+                detailed_stats: {},
+                stats_template: 'default'
+            });
+            console.log('✅ Stats manager initialized');
+        }
+
+        function testStatsProcessing() {
+            const testCSV = `character,stat_name,value
+크리스티앙,💪,2/5
+크리스티앙,🧠,4/5
+크리스티앙,⚡,3/5
+크리스티앙,❤️,2/5
+크리스티앙,🔮,4/5
+크리스티앙,⚔️,1/5`;
+
+            const command = `\${GeminiStats=${testCSV}}`;
+            
+            console.log('🔍 Testing command:', command);
+            
+            // Process the command
+            const updates = statsManager.processCommands(command);
+            
+            console.log('✅ Updates:', updates);
+            
+            // Show results
+            document.getElementById('results').innerHTML = `
+                <div class="mb-4">
+                    <strong>Character Stats:</strong><br>
+                    <pre class="text-xs bg-gray-700 p-2 rounded mt-1">${JSON.stringify(statsManager.characterStats, null, 2)}</pre>
+                </div>
+                <div class="mb-4">
+                    <strong>Current Template:</strong> ${statsManager.currentTemplate}
+                </div>
+                <div class="mb-4">
+                    <strong>Updates:</strong><br>
+                    <pre class="text-xs bg-gray-700 p-2 rounded mt-1">${JSON.stringify(updates, null, 2)}</pre>
+                </div>
+                <div>
+                    <strong>Session Data:</strong><br>
+                    <pre class="text-xs bg-gray-700 p-2 rounded mt-1">${JSON.stringify(statsManager.getSessionData(), null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initialize();
+            document.getElementById('test-btn').addEventListener('click', testStatsProcessing);
+        });
+    </script>
+</body>
+</html> 

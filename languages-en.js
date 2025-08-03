@@ -84,7 +84,52 @@ const LANGUAGES_EN = {
     turnPrompt: "Current session members: {playerList}\n\nIt's now the turn of: ${currentTurn}$\n\nThis player should take their action now. Other players please wait.\n\nAfter the player's action, please respond with ${Turn=PlayerName} to set the next player's turn. Only use players who are in the member list.",
     chatPrompt: "Current session members: {playerList}\n\nIt's currently {currentTurn}'s turn.\nYou are {currentPlayerName}.\n\nThis is general chat. Do not proceed with the game as no action is being taken.\n\nAfter the player's action, please respond with ${Turn=PlayerName} to set the next player's turn. Only use players who are in the member list.",
     waitingText: "waiting",
-    noPlayersText: "No players"
+    noPlayersText: "No players",
+
+    // Stats system
+    statsLanguageInstruction: "Please write all stat names and values in English. Maintain consistent English style.",
+
+    // Stats display settings
+    shortStatsCount: 3,
+    shortStatsSeparator: " • ",
+    shortStatsClass: "text-xs text-gray-400",
+    detailedStatsClass: "text-sm text-gray-400",
+    noStatsMessage: "No stats available",
+    statsLabelClass: "text-sm font-medium",
+    statsValueClass: "text-sm text-gray-300",
+
+
+    // Prompt Templates
+    promptTemplates: {
+        characterStats: {
+            title: "Determine representative character stats for a TRPG character.",
+            description: "Analyze the character and provide representative stats.",
+            format: "Please provide representative stats in the following CSV format:\ncharacter,stat_name,value",
+            guidelines: [
+                "Create 1-5 representative stats that best describe this character",
+                "Use emoji for stat names to make them visually clear",
+                "Use various stat formats: '3/5' for regeneratable stats (like mana, stamina), '14' for base stats (like strength, dexterity), '1/30' for current/max stats (like health) - only regeneratable stats should have maximum values",
+                "You can include essential info like class/race in emoji format (e.g., 🧙‍♂️Wizard, 🧝‍♀️Elf)",
+                "Choose stats that best represent the character's core abilities and traits"
+            ],
+            return: "Return ONLY the CSV data, no additional text"
+        },
+
+        batchStats: {
+            title: "Determine representative character stats for multiple TRPG characters.",
+            description: "Provide representative stats for all characters.",
+            format: "Please provide representative stats for ALL characters in the following CSV format:\ncharacter,stat_name,value",
+            guidelines: [
+                "Create 1-5 representative stats that best describe each character",
+                "Use emoji for stat names to make them visually clear",
+                "Use consistent emojis across all characters for the same stat types",
+                "Use various stat formats: '3/5' for regeneratable stats (like mana, stamina), '14' for base stats (like strength, dexterity), '1/30' for current/max stats (like health) - only regeneratable stats should have maximum values",
+                "You can include essential info like class/race in emoji format (e.g., 🧙‍♂️Wizard, 🧝‍♀️Elf)",
+                "Choose stats that best represent each character's core abilities and traits"
+            ],
+            return: "Return ONLY the CSV data, no additional text"
+        }
+    }
 };
 
 // Export for use in other files

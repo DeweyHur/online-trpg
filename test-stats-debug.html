@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Stats Debug</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Character Stats Debug</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Test Input -->
+            <div class="bg-gray-800 p-4 rounded">
+                <h2 class="text-lg font-semibold mb-4">Test Stats Processing</h2>
+                <button id="test-stats" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded mb-4">
+                    Test Stats Processing
+                </button>
+                <div id="test-output" class="text-sm"></div>
+            </div>
+
+            <!-- Current Stats -->
+            <div class="bg-gray-800 p-4 rounded">
+                <h2 class="text-lg font-semibold mb-4">Current Stats</h2>
+                <div id="current-stats" class="text-sm"></div>
+            </div>
+        </div>
+
+        <!-- Member Display Test -->
+        <div class="mt-8 bg-gray-800 p-4 rounded">
+            <h2 class="text-lg font-semibold mb-4">Member Display Test</h2>
+            <div id="member-display" class="border border-gray-600 rounded p-4 min-h-[200px]">
+                <!-- Member items will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="character-stats.js"></script>
+    <script src="turn-system.js"></script>
+    <script>
+        let statsManager;
+        let turnSystem;
+        let memberManager;
+
+        // Initialize systems
+        function initializeSystems() {
+            // Create language manager mock
+            const languageManager = {
+                getText: (key) => key,
+                currentLanguage: 'en'
+            };
+
+            // Initialize character stats manager
+            statsManager = new CharacterStatsManager();
+            statsManager.initialize({
+                character_stats: {},
+                detailed_stats: {},
+                stats_template: 'default'
+            });
+
+            // Initialize turn system
+            turnSystem = new TurnSystem(languageManager);
+            turnSystem.initialize({
+                players: {
+                    "player_1": "크리스티앙"
+                },
+                current_turn: null,
+                turn_order: []
+            });
+
+            // Initialize member manager
+            memberManager = new MemberManager(turnSystem);
+            memberManager.membersContainer = document.getElementById('member-display');
+
+            // Make them globally available
+            window.characterStatsManager = statsManager;
+            window.turnSystem = turnSystem;
+            window.memberManager = memberManager;
+
+            console.log('✅ Systems initialized');
+        }
+
+        // Test stats processing
+        function testStatsProcessing() {
+            const testCSV = `character,stat_name,value
+크리스티앙,💪,2/5
+크리스티앙,🧠,4/5
+크리스티앙,⚡,3/5
+크리스티앙,❤️,2/5
+크리스티앙,🔮,4/5
+크리스티앙,⚔️,1/5`;
+
+            const command = `\${GeminiStats=${testCSV}}`;
+            
+            console.log('🔍 Testing command:', command);
+            
+            // Process the command
+            const updates = turnSystem.processCommands(command);
+            
+            console.log('✅ Updates:', updates);
+            
+            // Update display
+            updateDisplay();
+            
+            // Update member display
+            memberManager.updateMembersDisplay();
+        }
+
+        // Update display
+        function updateDisplay() {
+            // Show current stats
+            document.getElementById('current-stats').innerHTML = `
+                <div class="mb-2">
+                    <strong>Character Stats:</strong><br>
+                    <pre class="text-xs bg-gray-700 p-2 rounded mt-1">${JSON.stringify(statsManager.characterStats, null, 2)}</pre>
+                </div>
+                <div class="mb-2">
+                    <strong>Current Template:</strong> ${statsManager.currentTemplate}
+                </div>
+                <div>
+                    <strong>Short Stats for 크리스티앙:</strong><br>
+                    <div class="mt-1">${statsManager.generateShortStatsHTML('크리스티앙')}</div>
+                </div>
+            `;
+
+            // Show test output
+            document.getElementById('test-output').innerHTML = `
+                <div class="text-green-400">✅ Stats processed successfully!</div>
+                <div class="mt-2">
+                    <strong>Generated HTML:</strong><br>
+                    <div class="bg-gray-700 p-2 rounded mt-1 text-xs">
+                        ${statsManager.generateShortStatsHTML('크리스티앙').replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeSystems();
+            
+            // Set up test button
+            document.getElementById('test-stats').addEventListener('click', testStatsProcessing);
+            
+            // Initial display update
+            updateDisplay();
+        });
+    </script>
+</body>
+</html> 

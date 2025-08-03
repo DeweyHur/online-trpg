@@ -76,6 +76,11 @@ const server = http.createServer(async (req, res) => {
             const serverHtmlContent = fs.readFileSync(path.join(__dirname, 'index-server.html'), 'utf8');
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(serverHtmlContent);
+        } else if (pathname === '/test-stats-simple.html') {
+            // Serve the test stats HTML file
+            const testHtmlContent = fs.readFileSync(path.join(__dirname, 'test-stats-simple.html'), 'utf8');
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(testHtmlContent);
         } else if (pathname.startsWith('/api/')) {
             // Handle API requests
             await handleApiRequest(req, res, pathname, method);
@@ -172,6 +177,28 @@ async function handleApiRequest(req, res, pathname, method) {
             try {
                 const updateData = JSON.parse(body);
 
+                // Log stats-related updates
+                if (updateData.character_stats) {
+                    console.log('📊 Stats Update for Session:', sessionId);
+                    console.log('   Character Stats:', JSON.stringify(updateData.character_stats, null, 2));
+                }
+                if (updateData.stats_template) {
+                    console.log('   Stats Template:', updateData.stats_template);
+                }
+                if (updateData.players) {
+                    console.log('   Players:', JSON.stringify(updateData.players, null, 2));
+                }
+                if (updateData.chat_history) {
+                    // Log only the last message if it contains stats commands
+                    const lastMessage = updateData.chat_history[updateData.chat_history.length - 1];
+                    if (lastMessage && lastMessage.parts && lastMessage.parts[0].text) {
+                        const text = lastMessage.parts[0].text;
+                        if (text.includes('GeminiStats') || text.includes('Stats=')) {
+                            console.log('   Last Chat Message (Stats):', text);
+                        }
+                    }
+                }
+
                 const { data, error } = await supabase
                     .from('trpg_sessions')
                     .update(updateData)
@@ -181,9 +208,11 @@ async function handleApiRequest(req, res, pathname, method) {
 
                 if (error) throw error;
 
+                console.log('✅ Session updated successfully:', { id: sessionId });
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ session: data }));
             } catch (error) {
+                console.error('❌ Session update error:', error);
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: error.message }));
             }
@@ -195,6 +224,13 @@ async function handleApiRequest(req, res, pathname, method) {
         req.on('end', async () => {
             try {
                 const { prompt, apiKey, chatHistory } = JSON.parse(body);
+
+                // Log stats-related prompts
+                if (prompt.includes('character,stat_name,value') || prompt.includes('batch prompt')) {
+                    console.log('🤖 Gemini Stats Prompt:');
+                    console.log('   Prompt:', prompt.substring(0, 500) + (prompt.length > 500 ? '...' : ''));
+                    console.log('   Chat History Length:', chatHistory ? chatHistory.length : 0);
+                }
 
                 const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=' + apiKey, {
                     method: 'POST',
@@ -218,6 +254,13 @@ async function handleApiRequest(req, res, pathname, method) {
                 const result = await response.json();
                 if (result.candidates && result.candidates.length > 0) {
                     const text = result.candidates[0].content.parts[0].text;
+
+                    // Log stats-related responses
+                    if (text.includes('character,stat_name,value') || text.includes('💪') || text.includes('🧠')) {
+                        console.log('🤖 Gemini Stats Response:');
+                        console.log('   Response:', text);
+                    }
+
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ response: text }));
                 } else {

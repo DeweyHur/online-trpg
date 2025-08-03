@@ -1,132 +1,63 @@
 // Character Stats System for TRPG
+
+// Helper function to get prompt template from language files
+function getPromptTemplate(language, type) {
+    const languageMap = {
+        'en': window.LANGUAGES_EN,
+        'ko': window.LANGUAGES_KO,
+        'ja': window.LANGUAGES_JA
+    };
+
+    const lang = languageMap[language] || languageMap['en'];
+    return lang.promptTemplates?.[type] || lang.promptTemplates?.characterStats;
+}
+
+// Helper function to get current language settings
+function getCurrentLanguageSettings() {
+    const language = window.languageManager?.currentLanguage || 'en';
+    const languageMap = {
+        'en': window.LANGUAGES_EN,
+        'ko': window.LANGUAGES_KO,
+        'ja': window.LANGUAGES_JA
+    };
+    return languageMap[language] || languageMap['en'];
+}
+
 class CharacterStatsManager {
     constructor() {
         this.characterStats = {};
-        this.statsTemplates = {
-            // Default templates for common RPG stats
-            default: {
-                short: [],
-                detailed: []
-            },
-            // Fantasy RPG template
-            fantasy: {
-                short: ['HP', 'MP'],
-                detailed: ['HP', 'MP', 'STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA', 'AC', 'Initiative']
-            },
-            // Sci-fi template
-            scifi: {
-                short: ['HP', 'Energy'],
-                detailed: ['HP', 'Energy', 'Strength', 'Agility', 'Intelligence', 'Tech', 'Combat', 'Social']
-            },
-            // Custom template (can be set by GM)
-            custom: {
-                short: [],
-                detailed: []
-            }
-        };
-        this.currentTemplate = 'default';
     }
 
     // Initialize with session data
     initialize(sessionData) {
+        console.log('🔍 DEBUG - CharacterStatsManager.initialize called with:', sessionData);
         this.characterStats = sessionData.character_stats || {};
-        this.currentTemplate = sessionData.stats_template || 'default';
+        console.log('🔍 DEBUG - CharacterStatsManager.characterStats after initialization:', this.characterStats);
     }
 
     // Generate prompt for Gemini to determine character stats
     generateStatsPrompt(characterName, context = '') {
-        return `I need you to determine appropriate character stats for a TRPG character.
+        const language = window.languageManager?.currentLanguage || 'en';
+        const template = getPromptTemplate(language, 'characterStats');
+
+        return `${template.title}
 
 Character Name: ${characterName}
 Context: ${context || 'General TRPG setting'}
 
-Please analyze this character and provide appropriate stats in the following CSV format:
-character,stat_name,value
-${characterName},<stat_name_1>,<value_1>
-${characterName},<stat_name_2>,<value_2>
-${characterName},<stat_name_3>,<value_3>
-${characterName},<stat_name_4>,<value_4>
-${characterName},<stat_name_5>,<value_5>
+${template.description}
+
+${template.format}
 
 Guidelines:
-- Create 3-8 stats that are appropriate for this character and campaign setting
-- Use descriptive stat names that fit the genre and theme
-- Values can be numbers, percentages, or descriptive text
-- Stats should reflect the character's abilities, condition, or state
-- Include the header row: character,stat_name,value
+${template.guidelines.map(guideline => `- ${guideline}`).join('\n')}
 
-Examples of different stat types:
-- Traditional RPG: HP, MP, STR, DEX, etc.
-- Horror/Supernatural: Sanity, Corruption, Spiritual Debt, etc.
-- Sci-fi: Energy, Tech Level, Cybernetics, etc.
-- Social: Reputation, Influence, Connections, etc.
-
-Return ONLY the CSV data, no additional text.`;
+${template.return}.`;
     }
 
-    // Generate prompt for Gemini to determine appropriate stat categories
-    generateTemplatePrompt(context = '') {
-        return `I need you to determine appropriate stat categories for a TRPG campaign.
 
-Context: ${context || 'General fantasy RPG setting'}
 
-Please analyze the campaign setting and provide appropriate stat categories in the following JSON format:
-{
-  "template": "custom",
-  "short": ["<primary_stat1>", "<primary_stat2>"],
-  "detailed": ["<stat1>", "<stat2>", "<stat3>", "<stat4>", "<stat5>", "<stat6>", "<stat7>", "<stat8>"]
-}
 
-Guidelines:
-- "short" should contain 2-3 most important stats that will be displayed below character names
-- "detailed" should contain 6-10 stats that will be shown in the detailed view
-- Use appropriate stat names for the setting (e.g., "HP/MP" for fantasy, "Health/Energy" for sci-fi)
-- Consider the genre and theme of the campaign
-
-Return ONLY the JSON object, no additional text.`;
-    }
-
-    // Parse character stats commands from GM messages
-    parseStatsCommands(text) {
-        const statsPattern = /\$\{Stats=([^}]+)\}/g;
-        const commands = [];
-        let match;
-
-        while ((match = statsPattern.exec(text)) !== null) {
-            try {
-                const statsData = JSON.parse(match[1]);
-                commands.push({
-                    type: 'stats',
-                    data: statsData
-                });
-            } catch (error) {
-                console.error('Error parsing stats command:', error);
-            }
-        }
-
-        return commands;
-    }
-
-    // Parse template commands
-    parseTemplateCommands(text) {
-        const templatePattern = /\$\{Template=([^}]+)\}/g;
-        const commands = [];
-        let match;
-
-        while ((match = templatePattern.exec(text)) !== null) {
-            try {
-                const templateData = JSON.parse(match[1]);
-                commands.push({
-                    type: 'template',
-                    data: templateData
-                });
-            } catch (error) {
-                console.error('Error parsing template command:', error);
-            }
-        }
-
-        return commands;
-    }
 
     // Parse Gemini-generated stats commands
     parseGeminiStatsCommands(text) {
@@ -172,14 +103,21 @@ Return ONLY the JSON object, no additional text.`;
                 console.log('🔍 Parsed stats:', stats);
 
                 if (Object.keys(stats).length > 0) {
-                    commands.push({
+                    // Get character name from the CSV
+                    const csvCharacterName = lines[1].split(',')[0].trim();
+
+                    const command = {
                         type: 'gemini_stats',
                         data: {
-                            character: lines[1].split(',')[0].trim(), // Get character name from first data row
+                            character: csvCharacterName,
                             stats: stats
                         }
-                    });
+                    };
+                    commands.push(command);
                     console.log('✅ Successfully parsed CSV stats data');
+                    console.log('🔍 Created command:', command);
+                    console.log('🔍 Character name from CSV:', csvCharacterName);
+                    console.log('🔍 Stats for character:', stats);
                 } else {
                     throw new Error('No valid stats found in CSV');
                 }
@@ -193,89 +131,59 @@ Return ONLY the JSON object, no additional text.`;
         return commands;
     }
 
-    // Parse Gemini-generated template commands
-    parseGeminiTemplateCommands(text) {
-        const geminiPattern = /\$\{GeminiTemplate=([^}]+)\}/g;
-        const commands = [];
-        let match;
 
-        while ((match = geminiPattern.exec(text)) !== null) {
-            try {
-                const templateData = JSON.parse(match[1]);
-                commands.push({
-                    type: 'gemini_template',
-                    data: templateData
-                });
-            } catch (error) {
-                console.error('Error parsing Gemini template command:', error);
-            }
-        }
-
-        return commands;
-    }
 
     // Process all character-related commands
     processCommands(text) {
-        const statsCommands = this.parseStatsCommands(text);
-        const templateCommands = this.parseTemplateCommands(text);
+        console.log('🔍 DEBUG - processCommands called with text:', text);
         const geminiStatsCommands = this.parseGeminiStatsCommands(text);
-        const geminiTemplateCommands = this.parseGeminiTemplateCommands(text);
-
+        console.log('🔍 DEBUG - Found geminiStatsCommands:', geminiStatsCommands);
         const updates = {};
 
-        // Process manual stats commands
-        statsCommands.forEach(cmd => {
-            if (cmd.data.character && cmd.data.stats) {
-                this.characterStats[cmd.data.character] = {
-                    ...this.characterStats[cmd.data.character],
-                    ...cmd.data.stats
-                };
-                updates.characterStats = this.characterStats;
-            }
-        });
+        // Helper function to find the best matching character name
+        const findBestCharacterMatch = (csvName) => {
+            // Get all character names from the current session
+            const sessionCharacters = window.currentSession?.players ? Object.values(window.currentSession.players) : [];
 
-        // Process manual template commands
-        templateCommands.forEach(cmd => {
-            if (cmd.data.template) {
-                this.currentTemplate = cmd.data.template;
-                if (cmd.data.short) {
-                    this.statsTemplates.custom.short = cmd.data.short;
-                }
-                if (cmd.data.detailed) {
-                    this.statsTemplates.custom.detailed = cmd.data.detailed;
-                }
-                updates.statsTemplate = this.currentTemplate;
+            // Try exact match first
+            if (sessionCharacters.includes(csvName)) {
+                return csvName;
             }
-        });
 
-        // Process Gemini-generated stats commands
+            // Try fuzzy matching for slight variations
+            for (const sessionChar of sessionCharacters) {
+                if (sessionChar.includes(csvName) || csvName.includes(sessionChar)) {
+                    console.log('🔍 Character name matched:', csvName, '->', sessionChar);
+                    return sessionChar;
+                }
+            }
+
+            // If no match found, use the CSV name as-is
+            console.log('🔍 No character name match found, using CSV name:', csvName);
+            return csvName;
+        };
+
+        // Process Gemini-generated stats commands (CSV format only)
         geminiStatsCommands.forEach(cmd => {
+            console.log('🔍 Processing Gemini stats command:', cmd);
             if (cmd.data.character && cmd.data.stats) {
-                this.characterStats[cmd.data.character] = {
-                    ...this.characterStats[cmd.data.character],
+                // Find the best matching character name
+                const matchedCharacterName = findBestCharacterMatch(cmd.data.character);
+
+                console.log('🔍 Before update - characterStats:', this.characterStats);
+                this.characterStats[matchedCharacterName] = {
+                    ...this.characterStats[matchedCharacterName],
                     ...cmd.data.stats
                 };
-                // Set template to custom when we have custom stats
-                this.currentTemplate = 'custom';
+                console.log('🔍 After update - characterStats:', this.characterStats);
                 updates.characterStats = this.characterStats;
-                updates.statsTemplate = this.currentTemplate;
+                console.log('🔍 Updates object:', updates);
+            } else {
+                console.log('🔍 Invalid Gemini stats command:', cmd);
             }
         });
 
-        // Process Gemini-generated template commands
-        geminiTemplateCommands.forEach(cmd => {
-            if (cmd.data.template) {
-                this.currentTemplate = cmd.data.template;
-                if (cmd.data.short) {
-                    this.statsTemplates.custom.short = cmd.data.short;
-                }
-                if (cmd.data.detailed) {
-                    this.statsTemplates.custom.detailed = cmd.data.detailed;
-                }
-                updates.statsTemplate = this.currentTemplate;
-            }
-        });
-
+        console.log('🔍 DEBUG - processCommands returning updates:', updates);
         return updates;
     }
 
@@ -287,54 +195,27 @@ Return ONLY the JSON object, no additional text.`;
     // Get short stats for display below member name
     getShortStats(characterName) {
         const stats = this.getCharacterStats(characterName);
+        const lang = getCurrentLanguageSettings();
+        const shortStatsCount = lang.shortStatsCount || 3;
 
-        // Auto-set template to custom if we have custom stats
-        if (Object.keys(stats).length > 0 && this.currentTemplate === 'default') {
-            this.currentTemplate = 'custom';
-        }
+        console.log('🔍 DEBUG - getShortStats for:', characterName);
+        console.log('🔍 DEBUG - stats from getCharacterStats:', stats);
+        console.log('🔍 DEBUG - all characterStats:', this.characterStats);
 
-        // If we have a template with defined short stats, use those
-        if (this.currentTemplate !== 'custom' && this.statsTemplates[this.currentTemplate]) {
-            const template = this.statsTemplates[this.currentTemplate];
-            const shortStats = template.short || [];
-
-            return shortStats.map(statName => ({
-                name: statName,
-                value: stats[statName] || '?'
-            }));
-        }
-
-        // For custom templates or when no template is set, show first 2-3 stats
+        // Show first N stats based on language setting
         const statNames = Object.keys(stats);
-        const shortStatNames = statNames.slice(0, 3); // Show first 3 stats
+        const shortStatNames = statNames.slice(0, shortStatsCount);
 
-        return shortStatNames.map(statName => ({
+        const result = shortStatNames.map(statName => ({
             name: statName,
             value: stats[statName] || '?'
         }));
+
+        console.log('🔍 DEBUG - getShortStats result:', result);
+        return result;
     }
 
-    // Get detailed stats for context menu
-    getDetailedStats(characterName) {
-        const stats = this.getCharacterStats(characterName);
 
-        // If we have a template with defined detailed stats, use those
-        if (this.currentTemplate !== 'custom' && this.statsTemplates[this.currentTemplate]) {
-            const template = this.statsTemplates[this.currentTemplate];
-            const detailedStats = template.detailed || [];
-
-            return detailedStats.map(statName => ({
-                name: statName,
-                value: stats[statName] || '?'
-            }));
-        }
-
-        // For custom templates or when no template is set, show all stats
-        return Object.keys(stats).map(statName => ({
-            name: statName,
-            value: stats[statName] || '?'
-        }));
-    }
 
     // Update character stats
     updateCharacterStats(characterName, newStats) {
@@ -344,41 +225,55 @@ Return ONLY the JSON object, no additional text.`;
         };
     }
 
+
+
     // Get session data for saving
     getSessionData() {
-        return {
-            character_stats: this.characterStats,
-            stats_template: this.currentTemplate
+        const sessionData = {
+            character_stats: this.characterStats
         };
+        console.log('🔍 CharacterStatsManager.getSessionData():', sessionData);
+        return sessionData;
     }
 
     // Generate stats display HTML for member list
     generateShortStatsHTML(characterName) {
         const shortStats = this.getShortStats(characterName);
+        const lang = getCurrentLanguageSettings();
+
+        console.log('🔍 DEBUG - generateShortStatsHTML for:', characterName);
+        console.log('🔍 DEBUG - shortStats:', shortStats);
+        console.log('🔍 DEBUG - characterStats for this character:', this.characterStats[characterName]);
 
         if (shortStats.length === 0) {
+            console.log('🔍 DEBUG - No short stats found for:', characterName);
             return '';
         }
 
-        const statsHTML = shortStats.map(stat =>
-            `<span class="text-xs text-gray-400">${stat.name}: ${stat.value}</span>`
-        ).join(' • ');
+        // For short stats, use emoji-only format
+        const statsHTML = shortStats.map(stat => {
+            // Since we're using emojis directly as stat names, just use them as-is
+            return `<span class="${lang.shortStatsClass || 'text-xs text-gray-400'}">${stat.name} ${stat.value}</span>`;
+        }).join(lang.shortStatsSeparator || ' • ');
 
-        return `<div class="mt-1 text-xs text-gray-400">${statsHTML}</div>`;
+        const result = `<div class="mt-1 ${lang.shortStatsClass || 'text-xs text-gray-400'}">${statsHTML}</div>`;
+        console.log('🔍 DEBUG - Generated stats HTML:', result);
+        return result;
     }
 
-    // Generate detailed stats HTML for context menu
+    // Generate stats HTML for context menu (simplified version)
     generateDetailedStatsHTML(characterName) {
-        const detailedStats = this.getDetailedStats(characterName);
+        const stats = this.getCharacterStats(characterName);
+        const lang = getCurrentLanguageSettings();
 
-        if (detailedStats.length === 0) {
-            return '<div class="text-sm text-gray-400">No stats available</div>';
+        if (!stats || Object.keys(stats).length === 0) {
+            return `<div class="${lang.detailedStatsClass || 'text-sm text-gray-400'}">${lang.noStatsMessage || 'No stats available'}</div>`;
         }
 
-        const statsHTML = detailedStats.map(stat =>
+        const statsHTML = Object.entries(stats).map(([statName, value]) =>
             `<div class="flex justify-between py-1 border-b border-gray-600 last:border-b-0">
-                <span class="text-sm font-medium">${stat.name}:</span>
-                <span class="text-sm text-gray-300">${stat.value}</span>
+                <span class="${lang.statsLabelClass || 'text-sm font-medium'}">${statName}:</span>
+                <span class="${lang.statsValueClass || 'text-sm text-gray-300'}">${value}</span>
             </div>`
         ).join('');
 

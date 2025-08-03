@@ -110,12 +110,6 @@ class TurnSystem {
             Object.assign(updates, statsUpdates);
         }
 
-        // Process Gemini-generated commands
-        if (window.characterStatsManager) {
-            const geminiUpdates = window.characterStatsManager.processCommands(text);
-            Object.assign(updates, geminiUpdates);
-        }
-
         commands.forEach(cmd => {
             switch (cmd.command.toLowerCase()) {
                 case 'turn':
@@ -192,9 +186,12 @@ class TurnSystem {
 
         // Include character stats data if available
         if (window.characterStatsManager) {
-            Object.assign(sessionData, window.characterStatsManager.getSessionData());
+            const statsData = window.characterStatsManager.getSessionData();
+            console.log('🔍 DEBUG - Character stats data being added to session:', statsData);
+            Object.assign(sessionData, statsData);
         }
 
+        console.log('🔍 DEBUG - Final session data being returned:', sessionData);
         return sessionData;
     }
 
@@ -251,6 +248,8 @@ class MemberManager {
         statsContent.className = 'text-sm';
         statsSection.appendChild(statsContent);
 
+
+
         this.contextMenu.appendChild(statsSection);
 
         // Create remove player section
@@ -298,7 +297,7 @@ class MemberManager {
         // Update stats content
         const statsContent = document.getElementById('context-stats-content');
         if (statsContent && window.characterStatsManager) {
-            statsContent.innerHTML = window.characterStatsManager.generateDetailedStatsHTML(playerName);
+            statsContent.innerHTML = window.characterStatsManager.generateShortStatsHTML(playerName);
         }
 
         // Show/hide remove option based on whether it's the current player
@@ -318,6 +317,8 @@ class MemberManager {
     hideContextMenu() {
         this.contextMenu.classList.add('hidden');
     }
+
+
 
     // Update members display
     updateMembersDisplay() {

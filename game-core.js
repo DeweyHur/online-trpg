@@ -21,6 +21,19 @@ let memberManager = null;
 let inputModeManager = null;
 let characterStatsManager = null;
 
+// Debug configuration
+const DEBUG_CONFIG = {
+    PLAYER_DETECTION: true,
+    STATS_GENERATION: true,
+    SESSION_UPDATES: true
+};
+
+// Track stats requests to prevent duplicates
+const statsRequestTracker = {
+    pendingRequests: new Set(),
+    completedRequests: new Set()
+};
+
 // Player colors array
 const playerColors = [
     'player-red', 'player-blue', 'player-green', 'player-yellow',
@@ -30,6 +43,8 @@ let playerColorMap = {};
 
 // --- SERVER API FUNCTIONS ---
 async function apiCall(endpoint, method = 'GET', data = null) {
+    console.log(`🌐 HTTP ${method} ${endpoint}`, data ? `with data: ${JSON.stringify(data).substring(0, 200)}...` : '');
+
     const options = {
         method,
         headers: {
@@ -45,9 +60,11 @@ async function apiCall(endpoint, method = 'GET', data = null) {
     const result = await response.json();
 
     if (!response.ok) {
+        console.error(`❌ HTTP ${method} ${endpoint} failed:`, result.error || 'API call failed');
         throw new Error(result.error || 'API call failed');
     }
 
+    console.log(`✅ HTTP ${method} ${endpoint} successful`);
     return result;
 }
 
@@ -55,11 +72,13 @@ async function callGemini(prompt, apiKey) {
     displayMessage({ text: languageManager.getText('gmThinking'), type: 'system' });
 
     try {
+        console.log('🔍 DEBUG - Calling Gemini API with prompt length:', prompt.length);
         const result = await apiCall('/gemini', 'POST', {
             prompt,
             apiKey,
             chatHistory: chatHistory.map(({ role, parts }) => ({ role, parts }))
         });
+        console.log('🔍 DEBUG - Gemini API result received:', result ? 'Yes' : 'No');
 
         return result.response;
     } catch (error) {
@@ -369,6 +388,24 @@ async function batchRequestCharacterStats(characterNames, apiKey) {
         return;
     }
 
+    // Check for pending or completed requests
+    const requestKey = characterNames.sort().join(',');
+    if (statsRequestTracker.pendingRequests.has(requestKey)) {
+        if (DEBUG_CONFIG.STATS_GENERATION) {
+            console.log('🔍 DEBUG - Stats request already pending for:', characterNames);
+        }
+        return;
+    }
+
+    if (statsRequestTracker.completedRequests.has(requestKey)) {
+        if (DEBUG_CONFIG.STATS_GENERATION) {
+            console.log('🔍 DEBUG - Stats already generated for:', characterNames);
+        }
+        return;
+    }
+
+    // Mark request as pending
+    statsRequestTracker.pendingRequests.add(requestKey);
     console.log('🤖 Batch requesting stats for characters:', characterNames);
 
     try {
@@ -380,7 +417,9 @@ async function batchRequestCharacterStats(characterNames, apiKey) {
 
         // Create a batch prompt for all characters
         const prompt = generateBatchStatsPrompt(characterNames, context, language);
+        console.log('🔍 DEBUG - Sending prompt to Gemini:', prompt);
         const response = await callGemini(prompt, apiKey);
+        console.log('🔍 DEBUG - Gemini response received:', response ? 'Yes' : 'No');
 
         if (response) {
             try {
@@ -439,9 +478,26 @@ async function batchRequestCharacterStats(characterNames, apiKey) {
 
                             // Update the session with the new stats
                             if (Object.keys(updates).length > 0) {
-                                await updateSession(window.currentSessionId, {
-                                    ...window.turnSystem.getSessionData()
-                                });
+                                if (DEBUG_CONFIG.SESSION_UPDATES) {
+                                    console.log('🔍 DEBUG - Updating session with stats:', updates);
+                                }
+                                const sessionData = window.turnSystem.getSessionData();
+                                if (DEBUG_CONFIG.SESSION_UPDATES) {
+                                    console.log('🔍 DEBUG - Full session data:', sessionData);
+                                }
+                                await updateSession(window.currentSessionId, sessionData);
+
+                                // Force refresh the character stats manager
+                                if (window.characterStatsManager) {
+                                    if (DEBUG_CONFIG.SESSION_UPDATES) {
+                                        console.log('🔍 DEBUG - Refreshing character stats manager');
+                                    }
+                                    window.characterStatsManager.initialize(sessionData);
+                                }
+                            } else {
+                                if (DEBUG_CONFIG.SESSION_UPDATES) {
+                                    console.log('🔍 DEBUG - No updates to apply');
+                                }
                             }
                         }
                     }
@@ -459,57 +515,40 @@ async function batchRequestCharacterStats(characterNames, apiKey) {
             }
         }
 
+        // Mark request as completed
+        statsRequestTracker.pendingRequests.delete(requestKey);
+        statsRequestTracker.completedRequests.add(requestKey);
+
     } catch (error) {
         console.error('Error batch requesting stats:', error);
+        // Remove from pending on error
+        statsRequestTracker.pendingRequests.delete(requestKey);
     }
 }
 
 // Helper function to generate a batch prompt for multiple characters
 function generateBatchStatsPrompt(characterNames, campaignContext, language) {
-    const languageInstructions = {
-        'ko': '모든 스탯 이름과 값을 한국어로 작성해주세요. 일관된 한국어 스타일을 유지해주세요.',
-        'ja': 'すべてのステータス名と値を日本語で記述してください。一貫した日本語スタイルを維持してください。',
-        'en': 'Please write all stat names and values in English. Maintain consistent English style.'
-    };
+    const template = getPromptTemplate(language, 'batchStats');
 
-    const instruction = languageInstructions[language] || languageInstructions['en'];
+    // Generate character list for the format
+    const characterList = characterNames.map(name =>
+        `${name},<stat_name_1>,<value_1>\n${name},<stat_name_2>,<value_2>\n${name},<stat_name_3>,<value_3}\n${name},<stat_name_4>,<value_4>\n${name},<stat_name_5>,<value_5>`
+    ).join('\n');
 
-    return `I need you to determine appropriate character stats for multiple TRPG characters with consistent language and style.
+    return `${template.title}
 
 Characters: ${characterNames.join(', ')}
 Campaign Context: ${campaignContext}
 Language: ${language}
 
-${instruction}
+${template.description}
 
-Please provide stats for ALL characters in the following CSV format:
-character,stat_name,value
-${characterNames.map(name => `${name},<stat_name_1>,<value_1>`).join('\n')}
-${characterNames.map(name => `${name},<stat_name_2>,<value_2>`).join('\n')}
-${characterNames.map(name => `${name},<stat_name_3>,<value_3>`).join('\n')}
-${characterNames.map(name => `${name},<stat_name_4>,<value_4>`).join('\n')}
-${characterNames.map(name => `${name},<stat_name_5>,<value_5>`).join('\n')}
+${template.format.replace('{characterList}', characterList)}
 
 Guidelines:
-- Create 3-8 stats that are appropriate for this campaign setting
-- Use consistent stat names across all characters
-- Use consistent language (${language}) for all stat names and values
-- Use emojis for stat names to make them more visual and compact
-- Use 2/5 style ratings (like "3/5", "4/5", "2/5") for values to keep them short
-- Stats should reflect each character's unique abilities and role
-- Include the header row: character,stat_name,value
+${template.guidelines.map(guideline => `- ${guideline}`).join('\n')}
 
-Examples of emoji stat names:
-- 💪 for Strength/힘/力
-- 🧠 for Intelligence/지능/知能
-- ⚡ for Agility/민첩/敏捷
-- 🛡️ for Defense/방어/防御
-- 🔥 for Fire/화염/炎
-- ❄️ for Ice/얼음/氷
-- 🌟 for Magic/마법/魔法
-- 🎯 for Accuracy/정확도/命中
-
-Return ONLY the CSV data, no additional text.`;
+${template.return}`;
 }
 
 async function createSession(geminiApiKey, startingPrompt) {
@@ -627,6 +666,7 @@ async function pollSession() {
             console.log('⏭️ Skipping poll - no current session');
             return;
         }
+        console.log('🔄 Polling session:', window.currentSession.id);
         const session = await getSession(window.currentSession.id);
         if (session) {
             const newChatHistory = session.chat_history || [];
@@ -634,19 +674,25 @@ async function pollSession() {
             // Check if turnSystem exists before accessing its properties
             const currentTurn = turnSystem ? turnSystem.currentTurn : null;
             const currentPlayers = turnSystem ? turnSystem.players : {};
+            const currentCharacterStats = window.characterStatsManager ? window.characterStatsManager.characterStats : {};
 
             const sessionChanged = session.chat_history !== window.chatHistory ||
                 session.current_turn !== currentTurn ||
-                JSON.stringify(session.players) !== JSON.stringify(currentPlayers);
+                JSON.stringify(session.players) !== JSON.stringify(currentPlayers) ||
+                JSON.stringify(session.character_stats) !== JSON.stringify(currentCharacterStats);
 
             if (sessionChanged) {
-                // console.log('📡 Poll detected changes:', {
-                //     sessionId: window.currentSession.id,
-                //     chatHistoryChanged: session.chat_history !== window.chatHistory,
-                //     turnChanged: session.current_turn !== currentTurn,
-                //     playersChanged: JSON.stringify(session.players) !== JSON.stringify(currentPlayers),
-                //     timestamp: new Date().toISOString()
-                // });
+                console.log('📡 Poll detected changes:', {
+                    sessionId: window.currentSession.id,
+                    chatHistoryChanged: session.chat_history !== window.chatHistory,
+                    turnChanged: session.current_turn !== currentTurn,
+                    playersChanged: JSON.stringify(session.players) !== JSON.stringify(currentPlayers),
+                    characterStatsChanged: JSON.stringify(session.character_stats) !== JSON.stringify(currentCharacterStats),
+                    sessionCharacterStats: session.character_stats,
+                    currentCharacterStats: currentCharacterStats,
+                    sessionChanged: sessionChanged,
+                    timestamp: new Date().toISOString()
+                });
                 updateGlobalVariables(session);
 
                 // Only update turn system if it exists
@@ -670,7 +716,10 @@ async function pollSession() {
 
                     // Update UI components if memberManager exists
                     if (memberManager) {
+                        console.log('🔍 DEBUG - Updating member display after session change');
                         memberManager.updateMembersDisplay();
+                    } else {
+                        console.log('🔍 DEBUG - memberManager not available for update');
                     }
 
                     // Re-render chat history with updated player highlighting
@@ -681,16 +730,58 @@ async function pollSession() {
                     // Detect new characters for auto-stats
                     const newCharacters = currentPlayers.filter(name => !previousPlayers.includes(name));
 
-                    if (newCharacters.length > 0) {
-                        console.log('🆕 New characters detected:', newCharacters);
+                    // Detect characters without stats
+                    const charactersWithoutStats = currentPlayers.filter(name => {
+                        const characterStats = window.characterStatsManager?.characterStats[name] || {};
+                        return Object.keys(characterStats).length === 0;
+                    });
 
-                        // Auto-request stats for new characters
+                    // Check if we already have stats for these characters
+                    const charactersWithoutStatsFiltered = charactersWithoutStats.filter(name => {
+                        const requestKey = [name].sort().join(',');
+                        return !statsRequestTracker.completedRequests.has(requestKey);
+                    });
+
+                    if (DEBUG_CONFIG.PLAYER_DETECTION) {
+                        console.log('🔍 DEBUG - Player detection analysis:', {
+                            previousPlayers,
+                            currentPlayers,
+                            newCharacters,
+                            charactersWithoutStats,
+                            charactersWithoutStatsFiltered,
+                            playersChanged,
+                            previousPlayersLength: previousPlayers.length,
+                            currentPlayersLength: currentPlayers.length,
+                            newCharactersLength: newCharacters.length,
+                            charactersWithoutStatsLength: charactersWithoutStats.length,
+                            charactersWithoutStatsFilteredLength: charactersWithoutStatsFiltered.length
+                        });
+                    }
+
+                    // Generate stats for new characters OR characters without stats
+                    const charactersNeedingStats = [...new Set([...newCharacters, ...charactersWithoutStatsFiltered])];
+
+                    if (charactersNeedingStats.length > 0) {
+                        console.log('🆕 Characters needing stats:', charactersNeedingStats);
+
+                        // Auto-request stats for characters
                         const apiKey = session.gemini_api_key;
                         if (apiKey) {
+                            if (DEBUG_CONFIG.STATS_GENERATION) {
+                                console.log('🔍 DEBUG - Starting batch stats request for:', charactersNeedingStats);
+                            }
                             // Run batch request in background to avoid blocking polling
-                            batchRequestCharacterStats(newCharacters, apiKey).catch(error => {
+                            batchRequestCharacterStats(charactersNeedingStats, apiKey).catch(error => {
                                 console.error('Error in batch request stats:', error);
                             });
+                        } else {
+                            if (DEBUG_CONFIG.STATS_GENERATION) {
+                                console.log('🔍 DEBUG - No API key available for stats request');
+                            }
+                        }
+                    } else {
+                        if (DEBUG_CONFIG.PLAYER_DETECTION) {
+                            console.log('🔍 DEBUG - No characters need stats');
                         }
                     }
 

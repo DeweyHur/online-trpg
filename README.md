@@ -2,6 +2,24 @@
 
 A real-time multiplayer tabletop role-playing game that uses Google's Gemini AI as the Game Master and Supabase for session management.
 
+## Requirements
+
+- **Node.js 20+**: This project requires Node.js version 20 or later due to Supabase requirements
+- **npm**: For package management
+
+### Node.js Version Check
+
+The project includes a version check script that will warn you if you're using an incompatible Node.js version. To ensure you're using the correct version:
+
+```bash
+# Check your Node.js version
+node --version
+
+# If you need to upgrade, use nvm (Node Version Manager)
+nvm install 23.11.0
+nvm use 23.11.0
+```
+
 ## Features
 
 - 🎲 Real-time multiplayer TRPG sessions

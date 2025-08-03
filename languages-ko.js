@@ -84,7 +84,52 @@ const LANGUAGES_KO = {
     turnPrompt: "현재 세션 멤버들: {playerList}\n\n다음 플레이어의 차례입니다: ${currentTurn}$\n\n이 플레이어가 행동할 차례입니다. 다른 플레이어들은 기다려주세요.\n\n플레이어의 행동 후, ${Turn=PlayerName}으로 다음 플레이어의 차례를 설정해주세요. 멤버 목록에 있는 플레이어만 사용하세요.",
     chatPrompt: "현재 세션 멤버들: {playerList}\n\n현재 {currentTurn}의 차례입니다. \n당신은 {currentPlayerName}입니다.\n\n이것은 일반 채팅입니다. 행동을 취하지 않으므로 게임을 진행하지 마세요.\n\n플레이어의 행동 후, ${Turn=PlayerName}으로 다음 플레이어의 차례를 설정해주세요. 멤버 목록에 있는 플레이어만 사용하세요.",
     waitingText: "대기 중",
-    noPlayersText: "플레이어 없음"
+    noPlayersText: "플레이어 없음",
+
+    // Stats system
+    statsLanguageInstruction: "모든 스탯 이름과 값을 한국어로 작성해주세요. 일관된 한국어 스타일을 유지해주세요.",
+
+    // Stats display settings
+    shortStatsCount: 3,
+    shortStatsSeparator: " • ",
+    shortStatsClass: "text-xs text-gray-400",
+    detailedStatsClass: "text-sm text-gray-400",
+    noStatsMessage: "스탯이 없습니다",
+    statsLabelClass: "text-sm font-medium",
+    statsValueClass: "text-sm text-gray-300",
+
+
+    // Prompt Templates
+    promptTemplates: {
+        characterStats: {
+            title: "TRPG 캐릭터의 대표적인 스탯을 결정해주세요.",
+            description: "캐릭터를 분석하고 대표적인 스탯을 제공해주세요.",
+            format: "다음 CSV 형식으로 대표적인 스탯을 제공해주세요:\ncharacter,stat_name,value",
+            guidelines: [
+                "캐릭터를 가장 잘 설명하는 1-5개의 대표적인 스탯을 생성하세요",
+                "시각적 명확성을 위해 스탯 이름에 이모지를 사용하세요",
+                "다양한 스탯 형식을 사용하세요: 재생 가능한 스탯은 '3/5' (마나, 스태미나 등), 기본 스탯은 '14' (힘, 민첩성 등), 현재/최대 스탯은 '1/30' (체력 등) - 재생 가능한 스탯만 최대값을 가집니다",
+                "직업/종족과 같은 필수 정보를 이모지 형식으로 포함할 수 있습니다 (예: 🧙‍♂️마법사, 🧝‍♀️엘프)",
+                "캐릭터의 핵심 능력과 특성을 가장 잘 나타내는 스탯을 선택하세요"
+            ],
+            return: "CSV 데이터만 반환하세요, 추가 텍스트 없이"
+        },
+
+        batchStats: {
+            title: "여러 TRPG 캐릭터의 대표적인 스탯을 결정해주세요.",
+            description: "모든 캐릭터에 대해 대표적인 스탯을 제공해주세요.",
+            format: "다음 CSV 형식으로 모든 캐릭터의 대표적인 스탯을 제공해주세요:\ncharacter,stat_name,value",
+            guidelines: [
+                "각 캐릭터를 가장 잘 설명하는 1-5개의 대표적인 스탯을 생성하세요",
+                "시각적 명확성을 위해 스탯 이름에 이모지를 사용하세요",
+                "같은 스탯 유형에 대해 모든 캐릭터에서 일관된 이모지를 사용하세요",
+                "다양한 스탯 형식을 사용하세요: 재생 가능한 스탯은 '3/5' (마나, 스태미나 등), 기본 스탯은 '14' (힘, 민첩성 등), 현재/최대 스탯은 '1/30' (체력 등) - 재생 가능한 스탯만 최대값을 가집니다",
+                "직업/종족과 같은 필수 정보를 이모지 형식으로 포함할 수 있습니다 (예: 🧙‍♂️마법사, 🧝‍♀️엘프)",
+                "각 캐릭터의 핵심 능력과 특성을 가장 잘 나타내는 스탯을 선택하세요"
+            ],
+            return: "CSV 데이터만 반환하세요, 추가 텍스트 없이"
+        }
+    }
 };
 
 // Export for use in other files

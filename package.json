@@ -2,12 +2,15 @@
   "name": "multiplayer-trpg",
   "version": "1.0.0",
   "description": "A real-time multiplayer tabletop role-playing game with AI Game Master",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "main": "dev-server.js",
   "scripts": {
-    "dev": "node dev-server.js",
-    "dev-simple": "node dev-server-simple.js",
-    "start": "node dev-server.js",
-    "build": "node build.js",
+    "dev": "$HOME/.nvm/versions/node/v23.11.0/bin/node run-dev.js",
+    "dev-simple": "$HOME/.nvm/versions/node/v23.11.0/bin/node dev-server-simple.js",
+    "start": "$HOME/.nvm/versions/node/v23.11.0/bin/node run-dev.js",
+    "build": "$HOME/.nvm/versions/node/v23.11.0/bin/node build.js",
     "vercel-build": "echo 'Build complete'"
   },
   "dependencies": {

@@ -199,6 +199,14 @@ function initializeApp() {
                             ...window.turnSystem.getSessionData()
                         });
                         console.log('✅ Player added to session:', name);
+
+                        // Trigger auto-stats generation for the new player
+                        if (window.currentSession?.gemini_api_key) {
+                            console.log('🆕 Triggering auto-stats generation for:', name);
+                            batchRequestCharacterStats([name], window.currentSession.gemini_api_key).catch(error => {
+                                console.error('Error in auto-stats generation:', error);
+                            });
+                        }
                     } catch (error) {
                         console.error('Error updating session with new player:', error);
                     }
