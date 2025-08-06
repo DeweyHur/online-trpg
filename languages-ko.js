@@ -22,13 +22,17 @@ const LANGUAGES_KO = {
     createCharacterTitle: "캐릭터 만들기",
     joinGameTitle: "게임 참가",
     characterNamePlaceholder: "캐릭터 이름을 입력하세요",
+    characterDescriptionPlaceholder: "캐릭터의 배경, 성격, 외모를 설명하세요...",
     joinGameButton: "게임 참가",
     newCharacterButton: "새 캐릭터 생성",
     creatingCharacter: "생성 중...",
     existingPlayersTitle: "기존 플레이어",
 
     // Game setup template
-    gameSetupTemplate: "새로운 TRPG 게임을 플레이할 예정입니다. 세계는 {worldDescription}로 설명됩니다. 주인공은 {characterName}이고 이 게임을 시작하고 싶습니다. 사람들이 자유롭게 참가하고 떠날 수 있으니 이 점을 염두에 두세요.",
+    gameSetupTemplate: "새로운 TRPG 게임을 플레이할 예정입니다. 세계는 {worldDescription}로 설명됩니다. 주인공은 {characterName}이고 이 게임을 시작하고 싶습니다. 사람들이 자유롭게 참가하고 떠날 수 있으니 이 점을 염두에 두세요.\n\n첫 번째 장면을 생생하게 묘사해주세요. 분위기를 설정하고 {characterName}에게 상호작용할 수 있는 명확한 시작 상황을 제공해주세요. 환경, 즉각적인 도전이나 기회, 그리고 {characterName}이 이 순간에 보고, 듣고, 느낄 수 있는 것들을 묘사해주세요.",
+
+    // Character joining template
+    characterJoiningTemplate: "새로운 캐릭터 {characterName}이(가) 세계에 참가했습니다. 그/그녀의 배경은 {background}입니다. 그 캐릭터가 이 상황에 어떻게 참가하는지 설명해주세요.",
     existingPlayersHelp: "플레이어를 클릭하여 해당 캐릭터로 참가하거나, 아래에서 새 캐릭터를 생성하세요.",
     newCharacterTitle: "새 캐릭터 생성",
     cancelButton: "취소",

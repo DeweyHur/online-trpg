@@ -247,6 +247,7 @@ function initializeApp() {
     // Character creation
     createCharacterBtn.addEventListener('click', async () => {
         const name = document.getElementById('character-name').value.trim();
+        const description = document.getElementById('character-description').value.trim();
         if (!name) {
             alert(languageManager.getText('characterNameRequired'));
             return;
@@ -254,8 +255,10 @@ function initializeApp() {
 
         // Disable inputs to prevent multiple requests
         const characterNameInput = document.getElementById('character-name');
+        const characterDescriptionInput = document.getElementById('character-description');
         const createButton = document.getElementById('create-character-btn');
         characterNameInput.disabled = true;
+        characterDescriptionInput.disabled = true;
         createButton.disabled = true;
         createButton.textContent = languageManager.getText('creatingCharacter');
 
@@ -279,27 +282,50 @@ function initializeApp() {
                 });
                 console.log('🔍 DEBUG - Generated game setup prompt:', gameSetupPrompt);
 
+                // Create session first to get session ID
+                const session = await createSession(apiKey, startPrompt);
+                updateGlobalVariables(session);
+                switchToGameView(session.id);
+
+                // Initialize turn system and set first player as current turn
+                if (window.turnSystem) {
+                    window.turnSystem.players = { [name]: name };
+                    window.turnSystem.turnOrder = [name];
+                    window.turnSystem.currentTurn = name;
+                    window.turnSystem.updateTurnStatus();
+                }
+
+                // Generate turn prompt for the first player
+                const turnPrompt = languageManager.getText('turnPrompt', {
+                    playerList: name,
+                    currentTurn: name
+                });
+
+                // Combine game setup with turn prompt
+                const combinedPrompt = `${gameSetupPrompt}\n\n${turnPrompt}`;
+                console.log('🔍 DEBUG - Combined prompt with turn system:', combinedPrompt);
+
                 // Show thinking indicator
                 showThinkingIndicator();
 
-                // Call Gemini for initial response
-                const initialGMResponse = await callGemini(gameSetupPrompt, apiKey);
+                // Call Gemini for initial response with turn prompt
+                const initialGMResponse = await callGemini(combinedPrompt, apiKey);
 
                 // Hide thinking indicator
                 hideThinkingIndicator();
                 if (initialGMResponse) {
                     const initialHistory = [
-                        { role: "user", parts: [{ text: gameSetupPrompt }], author: 'SYSTEM' },
+                        { role: "user", parts: [{ text: combinedPrompt }], author: 'SYSTEM' },
                         { role: "model", parts: [{ text: initialGMResponse }], author: 'GM' }
                     ];
 
-                    // Create session with the initial chat history
-                    const session = await createSession(apiKey, startPrompt);
-                    updateGlobalVariables(session);
-                    switchToGameView(session.id);
-
-                    // Update session with initial chat history
-                    await updateSession(session.id, { chat_history: initialHistory });
+                    // Update session with initial chat history and turn data
+                    await updateSession(session.id, {
+                        chat_history: initialHistory,
+                        current_turn: name,
+                        turn_order: [name],
+                        players: { [name]: name }
+                    });
 
                     console.log('🔍 DEBUG - Chat history updated:', initialHistory);
 
@@ -320,7 +346,8 @@ function initializeApp() {
 
             // Apply player color to the player name display
             if (window.turnSystem && window.turnSystem.memberManager) {
-                // Add the player to turnSystem if not already there
+                // For new sessions, the player is already added in the initial setup
+                // For existing sessions, add the player if not already there
                 if (!window.turnSystem.players || !window.turnSystem.players[name]) {
                     if (!window.turnSystem.players) {
                         window.turnSystem.players = {};
@@ -336,12 +363,70 @@ function initializeApp() {
                             });
                             console.log('✅ Player added to session:', name);
 
-                            // Trigger auto-stats generation for the new player
-                            if (window.currentSession?.gemini_api_key) {
-                                console.log('🆕 Triggering auto-stats generation for:', name);
-                                batchRequestCharacterStats([name], window.currentSession.gemini_api_key).catch(error => {
-                                    console.error('Error in auto-stats generation:', error);
+                            // For new characters (not the first character), send character joining prompt
+                            if (!window.pendingSessionData && window.currentSession?.gemini_api_key) {
+                                console.log('🆕 New character joining, sending character joining prompt');
+
+                                // Generate character joining prompt
+                                const characterJoiningPrompt = languageManager.getText('characterJoiningTemplate', {
+                                    characterName: name,
+                                    background: description || 'No background provided'
                                 });
+
+                                console.log('🔍 DEBUG - Character joining prompt:', characterJoiningPrompt);
+
+                                // Show thinking indicator
+                                showThinkingIndicator();
+
+                                // Call Gemini for character joining response
+                                const characterJoiningResponse = await callGemini(characterJoiningPrompt, window.currentSession.gemini_api_key);
+
+                                // Hide thinking indicator
+                                hideThinkingIndicator();
+
+                                if (characterJoiningResponse) {
+                                    // Add the character joining conversation to chat history
+                                    const characterJoiningHistory = [
+                                        { role: "user", parts: [{ text: characterJoiningPrompt }], author: 'SYSTEM' },
+                                        { role: "model", parts: [{ text: characterJoiningResponse }], author: 'GM' }
+                                    ];
+
+                                    // Update session with new chat history
+                                    const updatedChatHistory = [...window.chatHistory, ...characterJoiningHistory];
+                                    await updateSession(window.currentSessionId, {
+                                        chat_history: updatedChatHistory
+                                    });
+
+                                    // Update global chat history
+                                    window.chatHistory = updatedChatHistory;
+                                    chatHistory = updatedChatHistory;
+
+                                    console.log('✅ Character joining response added to chat history');
+
+                                    // Display the new messages immediately in the UI
+                                    // Use the existing characterJoiningHistory variable that was already created above
+                                    characterJoiningHistory.forEach(msg => {
+                                        displayMessage({
+                                            text: msg.parts[0].text,
+                                            type: msg.role === 'model' ? 'gm' : 'player',
+                                            author: msg.author || (msg.role === 'model' ? 'GM' : 'Player')
+                                        });
+                                    });
+
+                                    // Now request stats after the character joining response is processed
+                                    console.log('🆕 Triggering auto-stats generation for:', name);
+                                    batchRequestCharacterStats([name], window.currentSession.gemini_api_key).catch(error => {
+                                        console.error('Error in auto-stats generation:', error);
+                                    });
+                                }
+                            } else {
+                                // For existing characters or first character, request stats immediately
+                                if (window.currentSession?.gemini_api_key) {
+                                    console.log('🆕 Triggering auto-stats generation for:', name);
+                                    batchRequestCharacterStats([name], window.currentSession.gemini_api_key).catch(error => {
+                                        console.error('Error in auto-stats generation:', error);
+                                    });
+                                }
                             }
                         } catch (error) {
                             console.error('Error updating session with new player:', error);
@@ -360,11 +445,13 @@ function initializeApp() {
             playerInfo.classList.remove('hidden');
             characterModal.classList.add('hidden');
             document.getElementById('character-name').value = '';
+            document.getElementById('character-description').value = '';
 
         } catch (error) {
             console.error('Error during character creation:', error);
             // Re-enable inputs on error
             characterNameInput.disabled = false;
+            characterDescriptionInput.disabled = false;
             createButton.disabled = false;
             createButton.textContent = languageManager.getText('joinGameButton');
         }
@@ -374,6 +461,7 @@ function initializeApp() {
     cancelCharacterBtn.addEventListener('click', () => {
         characterModal.classList.add('hidden');
         document.getElementById('character-name').value = '';
+        document.getElementById('character-description').value = '';
     });
 
     // Preview toggle

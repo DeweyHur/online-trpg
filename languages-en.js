@@ -22,13 +22,17 @@ const LANGUAGES_EN = {
     createCharacterTitle: "Create Your Character",
     joinGameTitle: "Join the Game",
     characterNamePlaceholder: "Enter your character's name",
+    characterDescriptionPlaceholder: "Describe your character's background, personality, and appearance...",
     joinGameButton: "Join Game",
     newCharacterButton: "Create New Character",
     creatingCharacter: "Creating...",
     existingPlayersTitle: "Existing Players",
 
     // Game setup template
-    gameSetupTemplate: "We're going to play a new TRPG game. The world is described by {worldDescription}. The main character is {characterName} and we want to start this game. People can join and leave freely, so keep this in mind.",
+    gameSetupTemplate: "We're going to play a new TRPG game. The world is described by {worldDescription}. The main character is {characterName} and we want to start this game. People can join and leave freely, so keep this in mind.\n\nPlease describe the opening scene vividly, setting the atmosphere and giving {characterName} a clear starting situation to interact with. Describe the environment, any immediate challenges or opportunities, and what {characterName} can see, hear, and feel in this moment.",
+
+    // Character joining template
+    characterJoiningTemplate: "New character {characterName} joined to the world. His/Her background is {background}. Describe the situation how that character joins to this situation.",
     existingPlayersHelp: "Click on a player to join as them, or create a new character below.",
     newCharacterTitle: "Create New Character",
     cancelButton: "Cancel",
