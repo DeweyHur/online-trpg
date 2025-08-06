@@ -935,10 +935,17 @@ async function pollSession() {
 
                             // Process commands in GM messages
                             if (msg.role === 'model') {
+                                console.log('🔍 DEBUG - Processing commands in GM message:', msg.parts[0].text.substring(0, 100) + '...');
                                 const commandUpdates = turnSystem.processCommands(msg.parts[0].text);
+                                console.log('🔍 DEBUG - Command updates:', commandUpdates);
+                                
                                 if (Object.keys(commandUpdates).length > 0) {
+                                    console.log('🔍 DEBUG - Updating session with command changes:', commandUpdates);
                                     // Update session with command changes
                                     await updateSession(window.currentSession.id, commandUpdates);
+                                    console.log('🔍 DEBUG - Session updated with command changes');
+                                } else {
+                                    console.log('🔍 DEBUG - No command updates to apply');
                                 }
                             }
                         }
