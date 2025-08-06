@@ -87,6 +87,21 @@
                 "panel": "shared"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "nvm-use-node",
+            "type": "shell",
+            "command": "source ~/.nvm/nvm.sh 2>/dev/null || source ~/.bashrc 2>/dev/null || source ~/.zshrc 2>/dev/null; nvm use node 2>/dev/null || echo 'nvm not found, using system node'",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
         }
     ]
 } 

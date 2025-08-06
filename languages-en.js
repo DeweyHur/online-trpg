@@ -20,8 +20,18 @@ const LANGUAGES_EN = {
     sessionIdLabel: "Session ID:",
     playingAsLabel: "Playing as:",
     createCharacterTitle: "Create Your Character",
+    joinGameTitle: "Join the Game",
     characterNamePlaceholder: "Enter your character's name",
     joinGameButton: "Join Game",
+    newCharacterButton: "Create New Character",
+    creatingCharacter: "Creating...",
+    existingPlayersTitle: "Existing Players",
+
+    // Game setup template
+    gameSetupTemplate: "We're going to play a new TRPG game. The world is described by {worldDescription}. The main character is {characterName} and we want to start this game. People can join and leave freely, so keep this in mind.",
+    existingPlayersHelp: "Click on a player to join as them, or create a new character below.",
+    newCharacterTitle: "Create New Character",
+    cancelButton: "Cancel",
 
     // Chat and actions
     playerActionPlaceholder: "What do you do? (Supports markdown formatting)",
@@ -88,6 +98,10 @@ const LANGUAGES_EN = {
 
     // Stats system
     statsLanguageInstruction: "Please write all stat names and values in English. Maintain consistent English style.",
+    campaignSettingLabel: "Campaign Setting:",
+    characterNameLabel: "Character Name:",
+    characterDescriptionLabel: "Character Description:",
+    campaignContextLabel: "Campaign Context:",
 
     // Stats display settings
     shortStatsCount: 3,
@@ -118,7 +132,7 @@ const LANGUAGES_EN = {
         batchStats: {
             title: "Determine representative character stats for multiple TRPG characters.",
             description: "Provide representative stats for all characters.",
-            format: "Please provide representative stats for ALL characters in the following CSV format:\ncharacter,stat_name,value",
+            format: "Please provide representative stats for ALL characters in the following format:\ncharacter|stat_name|value",
             guidelines: [
                 "Create 1-5 representative stats that best describe each character",
                 "Use emoji for stat names to make them visually clear",
@@ -126,6 +140,22 @@ const LANGUAGES_EN = {
                 "Use various stat formats: '3/5' for regeneratable stats (like mana, stamina), '14' for base stats (like strength, dexterity), '1/30' for current/max stats (like health) - only regeneratable stats should have maximum values",
                 "You can include essential info like class/race in emoji format (e.g., 🧙‍♂️Wizard, 🧝‍♀️Elf)",
                 "Choose stats that best represent each character's core abilities and traits"
+            ],
+            return: "Return ONLY the CSV data, no additional text"
+        },
+
+        detailedStats: {
+            title: "Determine comprehensive character stats for multiple TRPG characters.",
+            description: "Provide detailed and comprehensive stats for all characters with full descriptions.",
+            format: "Please provide detailed stats for ALL characters in the following format:\ncharacter|stat_name|value|description",
+            guidelines: [
+                "Create 6-15 comprehensive stats that fully describe each character",
+                "Use descriptive stat names with emojis for visual clarity",
+                "Include detailed descriptions for each stat explaining what it represents",
+                "Use various stat formats: '3/5' for regeneratable stats, '14' for base stats, '1/30' for current/max stats",
+                "Include both basic stats (strength, intelligence, etc.) and specialized stats (magic affinity, social influence, etc.)",
+                "Provide one-line explanations for each stat in the description column",
+                "Choose stats that comprehensively represent the character's abilities, background, and traits"
             ],
             return: "Return ONLY the CSV data, no additional text"
         }

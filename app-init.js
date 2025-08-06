@@ -14,6 +14,7 @@ function initializeApp() {
     const playerActionInput = document.getElementById('player-action');
     const characterModal = document.getElementById('character-modal');
     const createCharacterBtn = document.getElementById('create-character-btn');
+    const cancelCharacterBtn = document.getElementById('cancel-character-btn');
     const playerInfo = document.getElementById('player-info');
     const playerNameDisplay = document.getElementById('player-name-display');
     const previewToggle = document.getElementById('preview-toggle');
@@ -27,45 +28,41 @@ function initializeApp() {
         const apiKey = document.getElementById('gemini-api-key').value.trim();
         const startPrompt = document.getElementById('starting-prompt').value.trim();
 
+        console.log('🔍 DEBUG - API Key length:', apiKey.length);
+        console.log('🔍 DEBUG - Starting prompt:', startPrompt);
+        console.log('🔍 DEBUG - Starting prompt length:', startPrompt.length);
+
         if (!apiKey || !startPrompt) {
             createCustomConfirm(languageManager.getText('apiKeyRequired'));
             return;
         }
 
         try {
-            // Create session via server
-            const session = await createSession(apiKey, startPrompt);
-            updateGlobalVariables(session);
+            // Store the starting prompt and API key for later use
+            window.pendingSessionData = {
+                apiKey: apiKey,
+                startingPrompt: startPrompt
+            };
 
-            const initialUserMessage = { role: "user", parts: [{ text: startPrompt }], author: 'SYSTEM' };
-            chatHistory.push(initialUserMessage);
+            // Switch to game view without creating session yet
+            document.getElementById('session-view').classList.add('hidden');
+            document.getElementById('game-view').classList.remove('hidden');
 
-            // Call Gemini for initial response
-            const initialGMResponse = await callGemini(startPrompt, apiKey);
-            if (!initialGMResponse) return;
-
-            const initialHistory = [
-                initialUserMessage,
-                { role: "model", parts: [{ text: initialGMResponse }], author: 'GM' }
-            ];
-
-            // Update session via server
-            await updateSession(window.currentSession.id, { chat_history: initialHistory });
-
-            // Switch to game view
-            switchToGameView(window.currentSession.id);
-
-            // Start polling
-            restartPolling();
-
-            // Display initial chat history (including the messages we just created)
-            displayInitialChatHistory();
-
-            // Show character creation modal after creating session
+            // Show character creation modal
             setTimeout(() => {
                 const characterModal = document.getElementById('character-modal');
                 if (characterModal) {
                     characterModal.classList.remove('hidden');
+                    // Hide existing players section for new sessions
+                    const existingPlayersSection = document.getElementById('existing-players-section');
+                    if (existingPlayersSection) {
+                        existingPlayersSection.classList.add('hidden');
+                    }
+                    // Update modal for new session
+                    const modalTitle = characterModal.querySelector('h2');
+                    const createButton = document.getElementById('create-character-btn');
+                    if (modalTitle) modalTitle.textContent = languageManager.getText('createCharacterTitle');
+                    if (createButton) createButton.textContent = languageManager.getText('joinGameButton');
                 } else {
                     console.error('Character modal not found');
                 }
@@ -105,6 +102,12 @@ function initializeApp() {
                 const characterModal = document.getElementById('character-modal');
                 if (characterModal) {
                     characterModal.classList.remove('hidden');
+                    populateExistingPlayers();
+                    // Update modal for joining session
+                    const modalTitle = characterModal.querySelector('h2');
+                    const createButton = document.getElementById('create-character-btn');
+                    if (modalTitle) modalTitle.textContent = languageManager.getText('joinGameTitle');
+                    if (createButton) createButton.textContent = languageManager.getText('newCharacterButton');
                 } else {
                     console.error('Character modal not found');
                 }
@@ -169,6 +172,78 @@ function initializeApp() {
         }
     });
 
+    // Function to populate existing players list
+    function populateExistingPlayers() {
+        const existingPlayersList = document.getElementById('existing-players-list');
+        const existingPlayersSection = document.getElementById('existing-players-section');
+
+        if (!existingPlayersList || !window.currentSession) {
+            console.log('🔍 populateExistingPlayers: Missing elements or session');
+            return;
+        }
+
+        const players = window.currentSession.players || {};
+        const playerNames = Object.values(players);
+
+        console.log('🔍 populateExistingPlayers: Found players:', playerNames);
+
+        if (playerNames.length === 0) {
+            existingPlayersSection.classList.add('hidden');
+            console.log('🔍 populateExistingPlayers: No players, hiding section');
+            return;
+        }
+
+        existingPlayersSection.classList.remove('hidden');
+        existingPlayersList.innerHTML = '';
+        console.log('🔍 populateExistingPlayers: Showing section with', playerNames.length, 'players');
+
+        playerNames.forEach(playerName => {
+            const playerButton = document.createElement('button');
+            playerButton.className = 'w-full text-left p-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition duration-200';
+            playerButton.textContent = playerName;
+            playerButton.addEventListener('click', () => {
+                joinAsExistingPlayer(playerName);
+            });
+            existingPlayersList.appendChild(playerButton);
+        });
+    }
+
+    // Function to join as existing player
+    async function joinAsExistingPlayer(name) {
+        // Disable all buttons in the modal to prevent multiple requests
+        const allButtons = document.querySelectorAll('#character-modal button');
+        allButtons.forEach(btn => {
+            btn.disabled = true;
+        });
+
+        try {
+            characterName = name;
+            window.characterName = name;
+            playerNameDisplay.textContent = name;
+
+            // Hide modal
+            characterModal.classList.add('hidden');
+            playerInfo.classList.remove('hidden');
+
+            // Clear input
+            document.getElementById('character-name').value = '';
+
+            // Trigger auto-stats generation for existing character
+            if (window.currentSession?.gemini_api_key) {
+                console.log('🆕 Triggering auto-stats generation for:', name);
+                batchRequestCharacterStats([name], window.currentSession.gemini_api_key).catch(error => {
+                    console.error('Error requesting stats for existing character:', error);
+                });
+            }
+        } catch (error) {
+            console.error('Error joining as existing player:', error);
+            // Re-enable buttons on error
+            allButtons.forEach(btn => {
+                btn.disabled = false;
+            });
+        }
+    }
+
     // Character creation
     createCharacterBtn.addEventListener('click', async () => {
         const name = document.getElementById('character-name').value.trim();
@@ -177,51 +252,126 @@ function initializeApp() {
             return;
         }
 
-        characterName = name;
-        window.characterName = name;
-        playerNameDisplay.textContent = name;
+        // Disable inputs to prevent multiple requests
+        const characterNameInput = document.getElementById('character-name');
+        const createButton = document.getElementById('create-character-btn');
+        characterNameInput.disabled = true;
+        createButton.disabled = true;
+        createButton.textContent = languageManager.getText('creatingCharacter');
 
-        // Apply player color to the player name display
-        if (window.turnSystem && window.turnSystem.memberManager) {
-            // Add the player to turnSystem if not already there
-            if (!window.turnSystem.players || !Object.values(window.turnSystem.players).includes(name)) {
-                if (!window.turnSystem.players) {
-                    window.turnSystem.players = {};
+        try {
+            characterName = name;
+            window.characterName = name;
+            playerNameDisplay.textContent = name;
+
+            // Check if this is a new session (no current session exists)
+            if (window.pendingSessionData) {
+                // Create the session now with the character name
+                const startPrompt = window.pendingSessionData.startingPrompt;
+                const apiKey = window.pendingSessionData.apiKey;
+
+                console.log('🔍 DEBUG - Creating session with data:', { startPrompt, characterName: name });
+
+                // Generate the game setup prompt using the template
+                const gameSetupPrompt = languageManager.getText('gameSetupTemplate', {
+                    worldDescription: startPrompt,
+                    characterName: name
+                });
+                console.log('🔍 DEBUG - Generated game setup prompt:', gameSetupPrompt);
+
+                // Show thinking indicator
+                showThinkingIndicator();
+
+                // Call Gemini for initial response
+                const initialGMResponse = await callGemini(gameSetupPrompt, apiKey);
+
+                // Hide thinking indicator
+                hideThinkingIndicator();
+                if (initialGMResponse) {
+                    const initialHistory = [
+                        { role: "user", parts: [{ text: gameSetupPrompt }], author: 'SYSTEM' },
+                        { role: "model", parts: [{ text: initialGMResponse }], author: 'GM' }
+                    ];
+
+                    // Create session with the initial chat history
+                    const session = await createSession(apiKey, startPrompt);
+                    updateGlobalVariables(session);
+                    switchToGameView(session.id);
+
+                    // Update session with initial chat history
+                    await updateSession(session.id, { chat_history: initialHistory });
+
+                    console.log('🔍 DEBUG - Chat history updated:', initialHistory);
+
+                    // Update global chat history variables
+                    window.chatHistory = initialHistory;
+                    chatHistory = initialHistory;
+
+                    // Display initial chat history
+                    displayInitialChatHistory();
+
+                    // Start polling now that we have chat history
+                    restartPolling();
+
+                    // Clear the pending data
+                    delete window.pendingSessionData;
                 }
-                // Add player with a unique key
-                const playerKey = `player_${Date.now()}`;
-                window.turnSystem.players[playerKey] = name;
+            }
 
-                // Update the session on the server with the new player
-                if (window.currentSessionId) {
-                    try {
-                        await updateSession(window.currentSessionId, {
-                            ...window.turnSystem.getSessionData()
-                        });
-                        console.log('✅ Player added to session:', name);
+            // Apply player color to the player name display
+            if (window.turnSystem && window.turnSystem.memberManager) {
+                // Add the player to turnSystem if not already there
+                if (!window.turnSystem.players || !window.turnSystem.players[name]) {
+                    if (!window.turnSystem.players) {
+                        window.turnSystem.players = {};
+                    }
+                    // Add player using name as key
+                    window.turnSystem.players[name] = name;
 
-                        // Trigger auto-stats generation for the new player
-                        if (window.currentSession?.gemini_api_key) {
-                            console.log('🆕 Triggering auto-stats generation for:', name);
-                            batchRequestCharacterStats([name], window.currentSession.gemini_api_key).catch(error => {
-                                console.error('Error in auto-stats generation:', error);
+                    // Update the session on the server with the new player
+                    if (window.currentSessionId) {
+                        try {
+                            await updateSession(window.currentSessionId, {
+                                ...window.turnSystem.getSessionData()
                             });
+                            console.log('✅ Player added to session:', name);
+
+                            // Trigger auto-stats generation for the new player
+                            if (window.currentSession?.gemini_api_key) {
+                                console.log('🆕 Triggering auto-stats generation for:', name);
+                                batchRequestCharacterStats([name], window.currentSession.gemini_api_key).catch(error => {
+                                    console.error('Error in auto-stats generation:', error);
+                                });
+                            }
+                        } catch (error) {
+                            console.error('Error updating session with new player:', error);
                         }
-                    } catch (error) {
-                        console.error('Error updating session with new player:', error);
                     }
                 }
+
+                const playerColor = window.turnSystem.memberManager.getPlayerColor(name);
+                const playerNameDisplay = document.getElementById('player-name-display');
+
+                if (playerNameDisplay) {
+                    playerNameDisplay.className = 'font-semibold ' + playerColor;
+                }
             }
 
-            const playerColor = window.turnSystem.memberManager.getPlayerColor(name);
-            const playerNameDisplay = document.getElementById('player-name-display');
+            playerInfo.classList.remove('hidden');
+            characterModal.classList.add('hidden');
+            document.getElementById('character-name').value = '';
 
-            if (playerNameDisplay) {
-                playerNameDisplay.className = 'font-semibold ' + playerColor;
-            }
+        } catch (error) {
+            console.error('Error during character creation:', error);
+            // Re-enable inputs on error
+            characterNameInput.disabled = false;
+            createButton.disabled = false;
+            createButton.textContent = languageManager.getText('joinGameButton');
         }
+    });
 
-        playerInfo.classList.remove('hidden');
+    // Cancel character creation
+    cancelCharacterBtn.addEventListener('click', () => {
         characterModal.classList.add('hidden');
         document.getElementById('character-name').value = '';
     });
@@ -268,11 +418,16 @@ function initializeApp() {
         languageManager.setLanguage(selectedLanguage);
         updateTooltips();
 
-        // Update UI text
-        document.getElementById('create-session-text').textContent = languageManager.getText('createSession');
-        document.getElementById('join-session-text').textContent = languageManager.getText('joinSession');
-        document.getElementById('send-action-text').textContent = languageManager.getText('sendAction');
-        document.getElementById('leave-session-text').textContent = languageManager.getText('leaveSession');
+        // Update UI text with null checks
+        const createSessionText = document.getElementById('create-session-text');
+        const joinSessionText = document.getElementById('join-session-text');
+        const sendActionText = document.getElementById('send-action-text');
+        const leaveSessionText = document.getElementById('leave-session-text');
+
+        if (createSessionText) createSessionText.textContent = languageManager.getText('createSession');
+        if (joinSessionText) joinSessionText.textContent = languageManager.getText('joinSession');
+        if (sendActionText) sendActionText.textContent = languageManager.getText('sendAction');
+        if (leaveSessionText) leaveSessionText.textContent = languageManager.getText('leaveSession');
     });
 
     // Input event listeners

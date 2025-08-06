@@ -26,13 +26,16 @@ function getCurrentLanguageSettings() {
 class CharacterStatsManager {
     constructor() {
         this.characterStats = {};
+        this.detailedStats = {};
     }
 
     // Initialize with session data
     initialize(sessionData) {
         console.log('🔍 DEBUG - CharacterStatsManager.initialize called with:', sessionData);
         this.characterStats = sessionData.character_stats || {};
+        this.detailedStats = sessionData.detailed_stats || {};
         console.log('🔍 DEBUG - CharacterStatsManager.characterStats after initialization:', this.characterStats);
+        console.log('🔍 DEBUG - CharacterStatsManager.detailedStats after initialization:', this.detailedStats);
     }
 
     // Generate prompt for Gemini to determine character stats
@@ -192,6 +195,11 @@ ${template.return}.`;
         return this.characterStats[characterName] || {};
     }
 
+    // Get detailed character stats for a specific character
+    getDetailedCharacterStats(characterName) {
+        return this.detailedStats[characterName] || {};
+    }
+
     // Get short stats for display below member name
     getShortStats(characterName) {
         const stats = this.getCharacterStats(characterName);
@@ -230,7 +238,8 @@ ${template.return}.`;
     // Get session data for saving
     getSessionData() {
         const sessionData = {
-            character_stats: this.characterStats
+            character_stats: this.characterStats,
+            detailed_stats: this.detailedStats
         };
         console.log('🔍 CharacterStatsManager.getSessionData():', sessionData);
         return sessionData;
@@ -261,21 +270,33 @@ ${template.return}.`;
         return result;
     }
 
-    // Generate stats HTML for context menu (simplified version)
+    // Generate stats HTML for context menu (detailed version)
     generateDetailedStatsHTML(characterName) {
-        const stats = this.getCharacterStats(characterName);
+        const detailedStats = this.getDetailedCharacterStats(characterName);
+        const shortStats = this.getCharacterStats(characterName);
         const lang = getCurrentLanguageSettings();
+
+        // Use detailed stats if available, otherwise fall back to short stats
+        const stats = Object.keys(detailedStats).length > 0 ? detailedStats : shortStats;
 
         if (!stats || Object.keys(stats).length === 0) {
             return `<div class="${lang.detailedStatsClass || 'text-sm text-gray-400'}">${lang.noStatsMessage || 'No stats available'}</div>`;
         }
 
-        const statsHTML = Object.entries(stats).map(([statName, value]) =>
-            `<div class="flex justify-between py-1 border-b border-gray-600 last:border-b-0">
-                <span class="${lang.statsLabelClass || 'text-sm font-medium'}">${statName}:</span>
-                <span class="${lang.statsValueClass || 'text-sm text-gray-300'}">${value}</span>
-            </div>`
-        ).join('');
+        const statsHTML = Object.entries(stats).map(([statName, value]) => {
+            // Check if this is a detailed stat with description
+            const isDetailed = detailedStats[statName] && typeof detailedStats[statName] === 'object';
+            const statValue = isDetailed ? detailedStats[statName].value : value;
+            const description = isDetailed ? detailedStats[statName].description : '';
+
+            return `<div class="py-1 border-b border-gray-600 last:border-b-0">
+                <div class="flex justify-between">
+                    <span class="${lang.statsLabelClass || 'text-sm font-medium'}">${statName}:</span>
+                    <span class="${lang.statsValueClass || 'text-sm text-gray-300'}">${statValue}</span>
+                </div>
+                ${description ? `<div class="text-xs text-gray-500 mt-1">${description}</div>` : ''}
+            </div>`;
+        }).join('');
 
         return `<div class="space-y-1">${statsHTML}</div>`;
     }

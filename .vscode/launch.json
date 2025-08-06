@@ -30,7 +30,9 @@
             "env": {
                 "NODE_ENV": "development"
             },
-            "outputCapture": "std"
+            "outputCapture": "std",
+            "preLaunchTask": "nvm-use-node",
+            "runtimeExecutable": "/opt/homebrew/bin/node"
         },
         {
             "name": "Launch with Breakpoints",
@@ -48,6 +50,22 @@
             },
             "stopOnEntry": false,
             "restart": true
+        },
+        {
+            "name": "Debug Development Server (System Node)",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/dev-server.js",
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+                "NODE_ENV": "development"
+            },
+            "outputCapture": "std"
         },
         {
             "name": "Attach to Development Server",

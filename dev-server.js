@@ -142,8 +142,14 @@ async function handleApiRequest(req, res, pathname, method) {
                 }
 
                 console.log('✅ Session created successfully:', { id: session.id });
+                console.log('📝 Starting prompt stored:', startingPrompt);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ session }));
+                res.end(JSON.stringify({
+                    session: {
+                        ...session,
+                        starting_prompt: startingPrompt
+                    }
+                }));
             } catch (error) {
                 console.error('Create session error:', error);
                 res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -225,11 +231,16 @@ async function handleApiRequest(req, res, pathname, method) {
             try {
                 const { prompt, apiKey, chatHistory } = JSON.parse(body);
 
-                // Log stats-related prompts
-                if (prompt.includes('character,stat_name,value') || prompt.includes('batch prompt')) {
-                    console.log('🤖 Gemini Stats Prompt:');
-                    console.log('   Prompt:', prompt.substring(0, 500) + (prompt.length > 500 ? '...' : ''));
-                    console.log('   Chat History Length:', chatHistory ? chatHistory.length : 0);
+                // Log all prompts being sent to Gemini
+                console.log('🤖 Gemini API Call:');
+                console.log('   Prompt Length:', prompt.length);
+                console.log('   Chat History Length:', chatHistory ? chatHistory.length : 0);
+                console.log('   Prompt Preview:', prompt.substring(0, 200) + (prompt.length > 200 ? '...' : ''));
+
+                // Log full prompt for stats-related calls
+                if (prompt.includes('character,stat_name,value') || prompt.includes('batch prompt') || prompt.includes('representative stats')) {
+                    console.log('🤖 Full Stats Prompt:');
+                    console.log('   Prompt:', prompt);
                 }
 
                 const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=' + apiKey, {
@@ -255,9 +266,14 @@ async function handleApiRequest(req, res, pathname, method) {
                 if (result.candidates && result.candidates.length > 0) {
                     const text = result.candidates[0].content.parts[0].text;
 
-                    // Log stats-related responses
-                    if (text.includes('character,stat_name,value') || text.includes('💪') || text.includes('🧠')) {
-                        console.log('🤖 Gemini Stats Response:');
+                    // Log all responses from Gemini
+                    console.log('🤖 Gemini API Response:');
+                    console.log('   Response Length:', text.length);
+                    console.log('   Response Preview:', text ?? '');
+
+                    // Log full response for stats-related calls
+                    if (text.includes('character,stat_name,value') || text.includes('💪') || text.includes('🧠') || text.includes('|')) {
+                        console.log('🤖 Full Stats Response:');
                         console.log('   Response:', text);
                     }
 

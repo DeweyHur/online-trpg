@@ -118,7 +118,12 @@ function highlightPlayerNames(text) {
 
 // --- MESSAGE DISPLAY ---
 function displayMessage({ text, type, author = 'GM' }) {
-    // console.log('📝 Displaying message:', { text, type, author });
+    console.log('📝 Displaying message:', { text: text.substring(0, 100) + '...', type, author });
+
+    // Don't display thinking messages permanently
+    if (text.includes('GM이 생각하고 있습니다') || text.includes('GM is thinking')) {
+        return;
+    }
 
     const messageEl = document.createElement('div');
     messageEl.classList.add('mb-4');
@@ -177,6 +182,37 @@ function displayMessage({ text, type, author = 'GM' }) {
     }
 
     // console.log('📝 Message added successfully. Chat log children:', chatLog.children.length);
+}
+
+// --- THINKING INDICATOR ---
+function showThinkingIndicator() {
+    const playerActionInput = document.getElementById('player-action');
+    const sendActionBtn = document.getElementById('send-action-btn');
+
+    if (playerActionInput) {
+        playerActionInput.disabled = true;
+        playerActionInput.placeholder = languageManager.getText('gmThinking');
+    }
+
+    if (sendActionBtn) {
+        sendActionBtn.disabled = true;
+        sendActionBtn.textContent = '🤔';
+    }
+}
+
+function hideThinkingIndicator() {
+    const playerActionInput = document.getElementById('player-action');
+    const sendActionBtn = document.getElementById('send-action-btn');
+
+    if (playerActionInput) {
+        playerActionInput.disabled = false;
+        playerActionInput.placeholder = languageManager.getText('playerActionPlaceholder');
+    }
+
+    if (sendActionBtn) {
+        sendActionBtn.disabled = false;
+        sendActionBtn.textContent = languageManager.getText('sendButton');
+    }
 }
 
 // --- MODAL & CONFIRMATION ---

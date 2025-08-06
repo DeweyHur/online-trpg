@@ -233,10 +233,25 @@
            
             <!-- Character Creation Modal -->
             <div id="character-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center hidden z-50">
-                <div class="bg-gray-800 p-8 rounded-lg shadow-lg max-w-sm w-full">
-                    <h2 class="text-2xl font-bold mb-4" data-i18n="createCharacterTitle">Create Your Character</h2>
-                    <input id="character-name" type="text" data-i18n="characterNamePlaceholder" placeholder="Enter your character's name" class="w-full bg-gray-700 text-white p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <button id="create-character-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300" data-i18n="joinGameButton">Join Game</button>
+                <div class="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full">
+                    <h2 class="text-2xl font-bold mb-4" data-i18n="createCharacterTitle">Join the Game</h2>
+                    
+                    <!-- Existing Players Section -->
+                    <div id="existing-players-section" class="mb-4">
+                        <h3 class="text-lg font-semibold mb-2 text-indigo-400" data-i18n="existingPlayersTitle">Existing Players</h3>
+                        <div id="existing-players-list" class="space-y-2 max-h-32 overflow-y-auto">
+                            <!-- Existing players will be populated here -->
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2" data-i18n="existingPlayersHelp">Click on a player to join as them, or create a new character below.</p>
+                    </div>
+                    
+                    <div class="border-t border-gray-600 pt-4 mb-4">
+                        <h3 class="text-lg font-semibold mb-2 text-indigo-400" data-i18n="newCharacterTitle">Create New Character</h3>
+                        <input id="character-name" type="text" data-i18n="characterNamePlaceholder" placeholder="Enter your character's name" class="w-full bg-gray-700 text-white p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button id="create-character-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300" data-i18n="joinGameButton">Create New Character</button>
+                    </div>
+                    
+                    <button id="cancel-character-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md transition duration-300" data-i18n="cancelButton">Cancel</button>
                 </div>
             </div>
 

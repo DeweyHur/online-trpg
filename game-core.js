@@ -330,55 +330,59 @@ async function requestStatsForExistingCharacters(apiKey) {
 
 // Helper function to get current language from language manager
 function getCurrentLanguage() {
+    // First check the UI selector value directly
+    const languageSelector = document.getElementById('language-selector');
+    if (languageSelector && languageSelector.value) {
+        return languageSelector.value;
+    }
+    // Fallback to language manager
     return window.languageManager?.currentLanguage || 'en';
 }
 
 // Helper function to generate a prompt for asking Gemini about character stats
 function generateCharacterStatsPrompt(characterName, characterDescription, campaignContext) {
-    return `I need you to determine appropriate character stats for a TRPG character.
+    const language = getCurrentLanguage();
+    const template = getPromptTemplate(language, 'characterStats');
 
-Character Name: ${characterName}
-Character Description: ${characterDescription}
-Campaign Context: ${campaignContext}
+    return `${template.title}
 
-Please provide stats in the following CSV format:
-character,stat_name,value
-${characterName},<stat_name_1>,<value_1>
-${characterName},<stat_name_2>,<value_2>
-${characterName},<stat_name_3>,<value_3>
-${characterName},<stat_name_4>,<value_4>
-${characterName},<stat_name_5>,<value_5>
+${lang.characterNameLabel} ${characterName}
+${lang.characterDescriptionLabel} ${characterDescription}
+${lang.campaignContextLabel} ${campaignContext}
+
+${template.description}
+
+${template.format}
 
 Guidelines:
-- Create 3-8 stats that are appropriate for this character and campaign setting
-- Use descriptive stat names that fit the genre and theme
-- Values can be numbers, percentages, or descriptive text
-- Stats should reflect the character's abilities, condition, or state
-- Include the header row: character,stat_name,value
+${template.guidelines.map(guideline => `- ${guideline}`).join('\n')}
 
-Return ONLY the CSV data, no additional text.`;
+${template.return}`;
 }
 
 // Helper function to generate a prompt for asking Gemini about campaign templates
 function generateCampaignTemplatePrompt(campaignDescription) {
-    return `Please analyze this TRPG campaign setting and determine appropriate stat categories.
+    const language = getCurrentLanguage();
+    const lang = getCurrentLanguageSettings();
 
-Campaign Setting: ${campaignDescription}
+    return `${lang.campaignTemplateTitle || 'Please analyze this TRPG campaign setting and determine appropriate stat categories.'}
 
-I need you to provide stat categories in this exact JSON format:
+${lang.campaignSettingLabel} ${campaignDescription}
+
+${lang.campaignTemplateDescription || 'I need you to provide stat categories in this exact JSON format:'}
 {
   "template": "custom",
   "short": ["<primary_stat1>", "<primary_stat2>"],
   "detailed": ["<stat1>", "<stat2>", "<stat3>", "<stat4>", "<stat5>", "<stat6>", "<stat7>", "<stat8>"]
 }
 
-Guidelines:
-- "short" should contain 2-3 most important stats displayed below character names
-- "detailed" should contain 6-10 stats shown in the detailed view
-- Use appropriate stat names for the setting
-- Consider the genre and theme
+${lang.campaignTemplateGuidelines || 'Guidelines:'}
+- ${lang.campaignTemplateShortGuideline || '"short" should contain 2-3 most important stats displayed below character names'}
+- ${lang.campaignTemplateDetailedGuideline || '"detailed" should contain 6-10 stats shown in the detailed view'}
+- ${lang.campaignTemplateAppropriateGuideline || 'Use appropriate stat names for the setting'}
+- ${lang.campaignTemplateGenreGuideline || 'Consider the genre and theme'}
 
-Return ONLY the JSON object, no additional text.`;
+${lang.campaignTemplateReturn || 'Return ONLY the JSON object, no additional text.'}`;
 }
 
 // Function to batch request stats for multiple characters with consistent language
@@ -415,33 +419,50 @@ async function batchRequestCharacterStats(characterNames, apiKey) {
 
         console.log('🔍 Using current language:', language);
 
-        // Create a batch prompt for all characters
-        const prompt = generateBatchStatsPrompt(characterNames, context, language);
-        console.log('🔍 DEBUG - Sending prompt to Gemini:', prompt);
-        const response = await callGemini(prompt, apiKey);
-        console.log('🔍 DEBUG - Gemini response received:', response ? 'Yes' : 'No');
+        // Request short stats first
+        console.log('🤖 Requesting short stats for characters:', characterNames);
+        const shortPrompt = generateBatchShortStatsPrompt(characterNames, context, language);
+        console.log('🔍 DEBUG - Sending short stats prompt to Gemini:', shortPrompt);
+        const shortResponse = await callGemini(shortPrompt, apiKey);
+        console.log('🔍 DEBUG - Short stats response received:', shortResponse ? 'Yes' : 'No');
 
-        if (response) {
+        // Request detailed stats second
+        console.log('🤖 Requesting detailed stats for characters:', characterNames);
+        const detailedPrompt = generateBatchDetailedStatsPrompt(characterNames, context, language);
+        console.log('🔍 DEBUG - Sending detailed stats prompt to Gemini:', detailedPrompt);
+        const detailedResponse = await callGemini(detailedPrompt, apiKey);
+        console.log('🔍 DEBUG - Detailed stats response received:', detailedResponse ? 'Yes' : 'No');
+        console.log('🔍 DEBUG - Detailed response content:', detailedResponse);
+        console.log('🔍 DEBUG - Detailed response type:', typeof detailedResponse);
+        console.log('🔍 DEBUG - Detailed response length:', detailedResponse ? detailedResponse.length : 'null');
+
+        // Initialize stats objects
+        let characterStats = {};
+        let detailedStats = {};
+
+        if (shortResponse) {
             try {
-                // Parse CSV response from Gemini
-                console.log('🔍 Parsing batch CSV response');
-                console.log('🔍 Raw response:', response);
+                // Parse short stats CSV response
+                console.log('🔍 Parsing short stats CSV response');
+                console.log('🔍 Raw short stats response:', shortResponse);
 
-                const lines = response.trim().split('\n').filter(line => line.trim());
-                console.log('🔍 CSV lines:', lines);
 
-                if (lines.length < 2) {
-                    throw new Error('CSV must have at least header and one data row');
+                const shortLines = shortResponse.trim().split('\n').filter(line => line.trim());
+                console.log('🔍 Short stats CSV lines:', shortLines);
+
+                if (shortLines.length < 2) {
+                    throw new Error('Short stats CSV must have at least header and one data row');
                 }
 
-                // Process all characters from the batch response
-                const characterStats = {};
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
+                // Process short stats
+                characterStats = {};
+                for (let i = 1; i < shortLines.length; i++) {
+                    const line = shortLines[i].trim();
                     if (line) {
-                        const parts = line.split(',').map(part => part.trim());
+                        const parts = line.split('|').map(part => part.trim());
                         if (parts.length >= 3) {
                             const [character, statName, value] = parts;
+
                             if (character && statName && value) {
                                 if (!characterStats[character]) {
                                     characterStats[character] = {};
@@ -452,67 +473,126 @@ async function batchRequestCharacterStats(characterNames, apiKey) {
                     }
                 }
 
-                console.log('🔍 Parsed batch stats:', characterStats);
+                console.log('🔍 Parsed short stats:', characterStats);
+            } catch (error) {
+                console.error('Error parsing short stats CSV response:', error);
+                console.log('🔍 Problematic short stats response for debugging:', shortResponse);
+            }
+        }
 
-                // Process stats for each character
-                for (const characterName of characterNames) {
-                    if (characterStats[characterName] && Object.keys(characterStats[characterName]).length > 0) {
-                        // Convert stats back to CSV format for the command
-                        const csvLines = ['character,stat_name,value'];
-                        for (const [statName, value] of Object.entries(characterStats[characterName])) {
-                            csvLines.push(`${characterName},${statName},${value}`);
-                        }
-                        const csvData = csvLines.join('\n');
+        if (detailedResponse) {
+            try {
+                // Parse detailed stats CSV response
+                console.log('🔍 Parsing detailed stats CSV response');
+                console.log('🔍 Raw detailed stats response:', detailedResponse);
+                console.log('🔍 Detailed response type:', typeof detailedResponse);
+                console.log('🔍 Detailed response length:', detailedResponse.length);
 
-                        // Process the stats command using CSV format
-                        const command = `\${GeminiStats=${csvData}}`;
-                        if (window.turnSystem) {
-                            // Force the template to custom BEFORE processing commands
-                            if (window.characterStatsManager) {
-                                console.log('🔍 Setting template to custom before processing');
-                                window.characterStatsManager.currentTemplate = 'custom';
-                            }
+                const detailedLines = detailedResponse.trim().split('\n').filter(line => line.trim());
+                console.log('🔍 Detailed stats CSV lines:', detailedLines);
 
-                            const updates = window.turnSystem.processCommands(command);
-                            console.log('✅ Batch-generated stats for', characterName, ':', updates);
+                if (detailedLines.length < 2) {
+                    throw new Error('Detailed stats CSV must have at least header and one data row');
+                }
 
-                            // Update the session with the new stats
-                            if (Object.keys(updates).length > 0) {
-                                if (DEBUG_CONFIG.SESSION_UPDATES) {
-                                    console.log('🔍 DEBUG - Updating session with stats:', updates);
+                // Process detailed stats
+                detailedStats = {};
+                for (let i = 1; i < detailedLines.length; i++) {
+                    const line = detailedLines[i].trim();
+                    if (line) {
+                        const parts = line.split('|').map(part => part.trim());
+                        if (parts.length >= 4) {
+                            const character = parts[0];
+                            const statName = parts[1];
+                            const value = parts[2];
+                            const description = parts[3];
+
+                            if (character && statName && value) {
+                                if (!detailedStats[character]) {
+                                    detailedStats[character] = {};
                                 }
-                                const sessionData = window.turnSystem.getSessionData();
-                                if (DEBUG_CONFIG.SESSION_UPDATES) {
-                                    console.log('🔍 DEBUG - Full session data:', sessionData);
-                                }
-                                await updateSession(window.currentSessionId, sessionData);
-
-                                // Force refresh the character stats manager
-                                if (window.characterStatsManager) {
-                                    if (DEBUG_CONFIG.SESSION_UPDATES) {
-                                        console.log('🔍 DEBUG - Refreshing character stats manager');
-                                    }
-                                    window.characterStatsManager.initialize(sessionData);
-                                }
-                            } else {
-                                if (DEBUG_CONFIG.SESSION_UPDATES) {
-                                    console.log('🔍 DEBUG - No updates to apply');
-                                }
+                                detailedStats[character][statName] = {
+                                    value: value,
+                                    description: description || ''
+                                };
                             }
                         }
                     }
                 }
 
-                // Update the member display after all stats are processed
-                if (window.turnSystem && window.turnSystem.memberManager) {
-                    console.log('🔄 Updating member display after batch stats processed');
-                    window.turnSystem.memberManager.updateMembersDisplay();
-                }
-
+                console.log('🔍 Parsed detailed stats:', detailedStats);
             } catch (error) {
-                console.error('Error parsing batch Gemini CSV response:', error);
-                console.log('🔍 Problematic response for debugging:', response);
+                console.error('Error parsing detailed stats CSV response:', error);
+                console.log('🔍 Problematic detailed stats response for debugging:', detailedResponse);
             }
+        }
+
+        // Process stats for each character
+        for (const characterName of characterNames) {
+            // Find the best matching character name from the parsed stats
+            let matchedCharacterKey = characterName;
+            for (const key of Object.keys(characterStats || {})) {
+                if (key === characterName || key.includes(characterName) || characterName.includes(key.split(' ')[0])) {
+                    matchedCharacterKey = key;
+                    console.log('🔍 Matched character name:', characterName, '->', matchedCharacterKey);
+                    break;
+                }
+            }
+
+            // Process short stats
+            if (characterStats && characterStats[matchedCharacterKey] && Object.keys(characterStats[matchedCharacterKey]).length > 0) {
+                // Convert short stats back to CSV format for the command
+                const csvLines = ['character,stat_name,value'];
+                for (const [statName, value] of Object.entries(characterStats[matchedCharacterKey])) {
+                    csvLines.push(`${characterName},${statName},${value}`);
+                }
+                const csvData = csvLines.join('\n');
+
+                // Process the short stats command using CSV format
+                const command = `\${GeminiStats=${csvData}}`;
+                if (window.turnSystem) {
+                    // Force the template to custom BEFORE processing commands
+                    if (window.characterStatsManager) {
+                        console.log('🔍 Setting template to custom before processing short stats');
+                        window.characterStatsManager.currentTemplate = 'custom';
+                    }
+
+                    const updates = window.turnSystem.processCommands(command);
+                    console.log('✅ Batch-generated short stats for', characterName, ':', updates);
+                }
+            }
+
+            // Process detailed stats
+            if (detailedStats && detailedStats[matchedCharacterKey] && Object.keys(detailedStats[matchedCharacterKey]).length > 0) {
+                // Store detailed stats directly in the character stats manager
+                if (window.characterStatsManager) {
+                    window.characterStatsManager.detailedStats[characterName] = detailedStats[matchedCharacterKey];
+                    console.log('✅ Stored detailed stats for', characterName, ':', detailedStats[matchedCharacterKey]);
+                }
+            }
+        }
+
+        // Update the session with both short and detailed stats
+        if (window.turnSystem && window.characterStatsManager) {
+            const sessionData = window.turnSystem.getSessionData();
+            if (DEBUG_CONFIG.SESSION_UPDATES) {
+                console.log('🔍 DEBUG - Full session data with detailed stats:', sessionData);
+            }
+            await updateSession(window.currentSessionId, sessionData);
+
+            // Force refresh the character stats manager
+            if (window.characterStatsManager) {
+                if (DEBUG_CONFIG.SESSION_UPDATES) {
+                    console.log('🔍 DEBUG - Refreshing character stats manager with detailed stats');
+                }
+                window.characterStatsManager.initialize(sessionData);
+            }
+        }
+
+        // Update the member display after all stats are processed
+        if (window.turnSystem && window.turnSystem.memberManager) {
+            console.log('🔄 Updating member display after batch stats processed');
+            window.turnSystem.memberManager.updateMembersDisplay();
         }
 
         // Mark request as completed
@@ -526,13 +606,38 @@ async function batchRequestCharacterStats(characterNames, apiKey) {
     }
 }
 
-// Helper function to generate a batch prompt for multiple characters
-function generateBatchStatsPrompt(characterNames, campaignContext, language) {
+// Helper function to generate a batch prompt for short stats
+function generateBatchShortStatsPrompt(characterNames, campaignContext, language) {
     const template = getPromptTemplate(language, 'batchStats');
 
     // Generate character list for the format
     const characterList = characterNames.map(name =>
         `${name},<stat_name_1>,<value_1>\n${name},<stat_name_2>,<value_2>\n${name},<stat_name_3>,<value_3}\n${name},<stat_name_4>,<value_4>\n${name},<stat_name_5>,<value_5>`
+    ).join('\n');
+
+    return `${template.title}
+
+Characters: ${characterNames.join(', ')}
+Campaign Context: ${campaignContext}
+Language: ${language}
+
+${template.description}
+
+${template.format.replace('{characterList}', characterList)}
+
+Guidelines:
+${template.guidelines.map(guideline => `- ${guideline}`).join('\n')}
+
+${template.return}`;
+}
+
+// Helper function to generate a batch prompt for detailed stats
+function generateBatchDetailedStatsPrompt(characterNames, campaignContext, language) {
+    const template = getPromptTemplate(language, 'detailedStats');
+
+    // Generate character list for the format
+    const characterList = characterNames.map(name =>
+        `${name},<stat_name_1>,<value_1>,<description_1>\n${name},<stat_name_2>,<value_2>,<description_2>\n${name},<stat_name_3>,<value_3>,<description_3>\n${name},<stat_name_4>,<value_4>,<description_4>\n${name},<stat_name_5>,<value_5>,<description_5>\n${name},<stat_name_6>,<value_6>,<description_6>\n${name},<stat_name_7>,<value_7>,<description_7>\n${name},<stat_name_8>,<value_8>,<description_8>`
     ).join('\n');
 
     return `${template.title}
@@ -877,6 +982,7 @@ async function pollSession() {
     }
 }
 
+
 // --- UTILITY FUNCTIONS ---
 function updateGlobalVariables(session) {
     window.currentSession = session;
@@ -892,6 +998,7 @@ function updateGlobalVariables(session) {
 
 function displayInitialChatHistory() {
     console.log('📝 Displaying initial chat history:', window.chatHistory.length, 'messages');
+    console.log('📝 Chat history content:', window.chatHistory);
 
     // Clear existing chat
     const chatLog = document.getElementById('chat-log');
@@ -901,7 +1008,8 @@ function displayInitialChatHistory() {
 
     // Display all messages in chat history
     if (window.chatHistory && window.chatHistory.length > 0) {
-        window.chatHistory.forEach(msg => {
+        window.chatHistory.forEach((msg, index) => {
+            console.log(`📝 Displaying message ${index}:`, msg);
             displayMessage({
                 text: msg.parts[0].text,
                 type: msg.role === 'model' ? 'gm' : 'player',

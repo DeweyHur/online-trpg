@@ -297,7 +297,7 @@ class MemberManager {
         // Update stats content
         const statsContent = document.getElementById('context-stats-content');
         if (statsContent && window.characterStatsManager) {
-            statsContent.innerHTML = window.characterStatsManager.generateShortStatsHTML(playerName);
+            statsContent.innerHTML = window.characterStatsManager.generateDetailedStatsHTML(playerName);
         }
 
         // Show/hide remove option based on whether it's the current player
