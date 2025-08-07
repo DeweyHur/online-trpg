@@ -88,6 +88,7 @@ const LANGUAGES_JA = {
     sendActionButton: "行動を取る",
     sendChatButton: "チャット送信",
     toggleModeButton: "モード切り替え",
+    toggleMembersButton: "👥",
     removePlayerButton: "プレイヤー削除",
     confirmRemovePlayer: "{name}をセッションから削除してもよろしいですか？",
 

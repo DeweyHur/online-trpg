@@ -580,6 +580,49 @@ function initializeApp() {
         }
     });
 
+    // Mobile members sidebar toggle
+    const toggleMembersBtn = document.getElementById('toggle-members-btn');
+    const membersSidebar = document.getElementById('members-sidebar');
+    const formatToolbar = document.querySelector('.format-toolbar');
+    const inputModeIndicator = document.getElementById('input-mode-indicator');
+
+    if (toggleMembersBtn && membersSidebar) {
+        toggleMembersBtn.addEventListener('click', () => {
+            const isHidden = membersSidebar.classList.contains('hidden');
+            if (isHidden) {
+                // Show members panel and hide chat area
+                membersSidebar.classList.remove('hidden');
+                membersSidebar.classList.add('block');
+                toggleMembersBtn.textContent = '✕';
+                toggleMembersBtn.title = 'Hide Members';
+
+                // Hide chat area elements on mobile only
+                if (window.innerWidth < 1024) {
+                    if (chatLog) chatLog.classList.add('hidden');
+                    if (playerActionInput) playerActionInput.classList.add('hidden');
+                    if (sendActionBtn) sendActionBtn.classList.add('hidden');
+                    if (formatToolbar) formatToolbar.classList.add('hidden');
+                    if (inputModeIndicator) inputModeIndicator.classList.add('hidden');
+                    if (modeToggleBtn) modeToggleBtn.classList.add('hidden');
+                }
+            } else {
+                // Hide members panel and show chat area
+                membersSidebar.classList.add('hidden');
+                membersSidebar.classList.remove('block');
+                toggleMembersBtn.textContent = '👥';
+                toggleMembersBtn.title = 'Show Members';
+
+                // Show chat area elements
+                if (chatLog) chatLog.classList.remove('hidden');
+                if (playerActionInput) playerActionInput.classList.remove('hidden');
+                if (sendActionBtn) sendActionBtn.classList.remove('hidden');
+                if (formatToolbar) formatToolbar.classList.remove('hidden');
+                if (inputModeIndicator) inputModeIndicator.classList.remove('hidden');
+                if (modeToggleBtn) modeToggleBtn.classList.remove('hidden');
+            }
+        });
+    }
+
     // Language selector
     languageSelector.addEventListener('change', () => {
         const selectedLanguage = languageSelector.value;
@@ -633,6 +676,19 @@ function initializeApp() {
 
     // Initialize tooltips
     updateTooltips();
+
+    // Handle window resize to show/hide elements appropriately
+    window.addEventListener('resize', () => {
+        if (window.innerWidth >= 1024) {
+            // On tablet/desktop, always show chat area
+            if (chatLog) chatLog.classList.remove('hidden');
+            if (playerActionInput) playerActionInput.classList.remove('hidden');
+            if (sendActionBtn) sendActionBtn.classList.remove('hidden');
+            if (formatToolbar) formatToolbar.classList.remove('hidden');
+            if (inputModeIndicator) inputModeIndicator.classList.remove('hidden');
+            if (modeToggleBtn) modeToggleBtn.classList.remove('hidden');
+        }
+    });
 }
 
 // Initialize when DOM is ready

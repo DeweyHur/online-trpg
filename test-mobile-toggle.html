@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Toggle Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-4">
+    <h1 class="text-2xl font-bold mb-4">Mobile Toggle Test</h1>
+    
+    <div class="space-y-4">
+        <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-2">New Mobile Behavior</h2>
+            <div class="text-sm space-y-2">
+                <p>✅ When members panel is shown on mobile:</p>
+                <ul class="list-disc list-inside ml-4 space-y-1">
+                    <li>Chat history is hidden</li>
+                    <li>Input area is hidden</li>
+                    <li>Formatting toolbar is hidden</li>
+                    <li>Mode toggle is hidden</li>
+                    <li>Members panel gets full space</li>
+                </ul>
+                <p>✅ When members panel is hidden:</p>
+                <ul class="list-disc list-inside ml-4 space-y-1">
+                    <li>Chat history is shown</li>
+                    <li>Input area is shown</li>
+                    <li>All UI elements are restored</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-2">Expected Layout Changes</h2>
+            <div class="text-sm">
+                <p><strong>Before clicking 👥:</strong></p>
+                <div class="bg-gray-700 p-2 rounded mb-2">
+                    <div class="text-xs">Header with 👥 button</div>
+                    <div class="text-xs">Chat history visible</div>
+                    <div class="text-xs">Input area visible</div>
+                </div>
+                
+                <p><strong>After clicking 👥:</strong></p>
+                <div class="bg-gray-700 p-2 rounded">
+                    <div class="text-xs">Header with ✕ button</div>
+                    <div class="text-xs">Members panel visible</div>
+                    <div class="text-xs">Chat history hidden</div>
+                    <div class="text-xs">Input area hidden</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-2">Testing Instructions</h2>
+            <ul class="text-sm space-y-1">
+                <li>1. Open the main application (index.html)</li>
+                <li>2. Resize browser to mobile width (< 1024px)</li>
+                <li>3. Click the 👥 button in the header</li>
+                <li>4. Verify chat history and input area are hidden</li>
+                <li>5. Click the ✕ button to restore chat area</li>
+                <li>6. Resize to tablet/desktop to verify normal behavior</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html> 

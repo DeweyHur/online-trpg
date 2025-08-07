@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toggle Button Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-4">
+    <h1 class="text-2xl font-bold mb-4">Toggle Button Test</h1>
+    
+    <div class="space-y-4">
+        <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-2">Current Layout</h2>
+            <div class="text-sm">
+                <p>✅ Toggle button should now be in the main header</p>
+                <p>✅ Button should be visible on mobile devices</p>
+                <p>✅ Button should be hidden on tablet/desktop</p>
+            </div>
+        </div>
+        
+        <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-2">Expected Header Layout</h2>
+            <div class="text-sm font-mono bg-gray-700 p-2 rounded">
+                <div class="flex justify-between items-center">
+                    <span>TRPG Session</span>
+                    <div class="flex items-center space-x-4">
+                        <span>Session ID: ABC123</span>
+                        <span>Playing as: Player</span>
+                        <span>Polling: 5s</span>
+                        <span class="bg-indigo-600 px-3 py-2 rounded">👥</span> ← This button
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-2">Instructions</h2>
+            <ul class="text-sm space-y-1">
+                <li>1. Open the main application (index.html)</li>
+                <li>2. Resize browser to mobile width (< 1024px)</li>
+                <li>3. Look for the 👥 button in the top-right of the header</li>
+                <li>4. Click the button to show/hide members panel</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html> 

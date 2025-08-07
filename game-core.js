@@ -825,9 +825,10 @@ async function pollSession() {
                     }
 
                     // Update scene description display if sceneDescriptionManager exists
-                    if (sceneDescriptionManager) {
-                        sceneDescriptionManager.updateSceneDisplay();
-                    }
+                    // TODO: Implement scene description manager when needed
+                    // if (sceneDescriptionManager) {
+                    //     sceneDescriptionManager.updateSceneDisplay();
+                    // }
 
                     // Re-render chat history with updated player highlighting
                     const previousPlayers = turnSystem.players ? Object.values(turnSystem.players) : [];

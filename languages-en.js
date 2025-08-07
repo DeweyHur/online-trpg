@@ -91,6 +91,7 @@ const LANGUAGES_EN = {
     sendActionButton: "Take Action",
     sendChatButton: "Send Chat",
     toggleModeButton: "Toggle Mode",
+    toggleMembersButton: "👥",
     removePlayerButton: "Remove Player",
     confirmRemovePlayer: "Are you sure you want to remove {name} from the session?",
 

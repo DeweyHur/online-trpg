@@ -91,6 +91,7 @@ const LANGUAGES_KO = {
     sendActionButton: "행동 취하기",
     sendChatButton: "채팅 보내기",
     toggleModeButton: "모드 전환",
+    toggleMembersButton: "👥",
     removePlayerButton: "플레이어 제거",
     confirmRemovePlayer: "{name}을(를) 세션에서 제거하시겠습니까?",
 

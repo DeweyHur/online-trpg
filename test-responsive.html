@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Design Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for testing */
+        .test-container {
+            min-height: 100vh;
+            background: #1f2937;
+            color: white;
+        }
+        
+        /* Simulate different screen sizes */
+        .phone-view { width: 375px; }
+        .tablet-view { width: 768px; }
+        .desktop-view { width: 1024px; }
+    </style>
+</head>
+<body>
+    <div class="test-container p-4">
+        <h1 class="text-2xl font-bold mb-4">Responsive Design Test</h1>
+        
+        <div class="mb-4">
+            <button onclick="setView('phone')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mr-2">Phone View</button>
+            <button onclick="setView('tablet')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded mr-2">Tablet View</button>
+            <button onclick="setView('desktop')" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded">Desktop View</button>
+        </div>
+        
+        <div id="test-frame" class="border-2 border-gray-600 rounded-lg overflow-hidden">
+            <div class="bg-gray-900 p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h1 class="text-3xl font-bold text-indigo-400">TRPG Session</h1>
+                    <div class="flex items-center space-x-4">
+                        <p class="text-sm text-gray-400">Session ID: <span class="font-mono bg-gray-700 px-2 py-1 rounded-md">ABC123</span></p>
+                        <div class="text-xs text-gray-500">
+                            <span class="inline-block w-2 h-2 rounded-full bg-gray-500 mr-1"></span>
+                            <span>Polling: 5s</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Main Game Layout -->
+                <div class="flex flex-col lg:flex-row lg:space-x-4">
+                    <!-- Members Sidebar - Hidden on mobile, visible on tablet and up -->
+                    <div id="members-sidebar" class="hidden lg:block w-64 bg-gray-800 rounded-lg p-4 border border-gray-700 mb-4 lg:mb-0">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-indigo-400">Members</h3>
+                            <!-- Mobile toggle button - only visible on mobile -->
+                            <button id="toggle-members-btn" class="lg:hidden bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-2 py-1 rounded transition duration-300">👥</button>
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-2 p-2 bg-gray-700 rounded">
+                                <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                                <span>Alice (🧙‍♂️)</span>
+                            </div>
+                            <div class="flex items-center space-x-2 p-2 bg-gray-700 rounded">
+                                <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                                <span>Bob (⚔️)</span>
+                            </div>
+                            <div class="flex items-center space-x-2 p-2 bg-gray-700 rounded">
+                                <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                                <span>Charlie (🛡️)</span>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-600">
+                            <p class="text-xs text-gray-400">Right-click on a player to view character stats and details.</p>
+                            <button class="mt-2 w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1 rounded transition duration-300">
+                                🤖 Request Stats for All Characters
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Game Area -->
+                    <div class="flex-1">
+                        <!-- Chat/Game Log -->
+                        <div class="relative">
+                            <div class="bg-gray-800 rounded-lg p-4 h-96 overflow-y-auto mb-4 border border-gray-700">
+                                <div class="space-y-2">
+                                    <div class="text-blue-400">GM: Welcome to the adventure!</div>
+                                    <div class="text-green-400">Alice: I cast a light spell to illuminate the dark cave.</div>
+                                    <div class="text-blue-400">GM: The cave is now lit with a soft magical light...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Player Action Input -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="text-sm font-semibold text-blue-400">Chat Mode</div>
+                                <button class="text-xs bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded transition duration-300">Toggle Mode</button>
+                            </div>
+                            
+                            <div class="flex space-x-4">
+                                <div class="flex-grow space-y-2">
+                                    <textarea placeholder="What do you do? (Supports markdown formatting)" class="w-full bg-gray-700 text-white p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" rows="3"></textarea>
+                                </div>
+                                <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 self-end">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4 text-sm text-gray-400">
+            <p><strong>Instructions:</strong></p>
+            <ul class="list-disc list-inside mt-2 space-y-1">
+                <li><strong>Phone View:</strong> Members sidebar should be hidden by default, with a toggle button visible</li>
+                <li><strong>Tablet View:</strong> Members sidebar should be visible alongside the main game area</li>
+                <li><strong>Desktop View:</strong> Full layout with both panels visible</li>
+                <li>Click the toggle button (👥) in phone view to show/hide the members panel</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function setView(type) {
+            const frame = document.getElementById('test-frame');
+            frame.className = 'border-2 border-gray-600 rounded-lg overflow-hidden';
+            
+            switch(type) {
+                case 'phone':
+                    frame.classList.add('phone-view');
+                    break;
+                case 'tablet':
+                    frame.classList.add('tablet-view');
+                    break;
+                case 'desktop':
+                    frame.classList.add('desktop-view');
+                    break;
+            }
+        }
+        
+        // Mobile toggle functionality
+        const toggleMembersBtn = document.getElementById('toggle-members-btn');
+        const membersSidebar = document.getElementById('members-sidebar');
+        
+        if (toggleMembersBtn && membersSidebar) {
+            toggleMembersBtn.addEventListener('click', () => {
+                const isHidden = membersSidebar.classList.contains('hidden');
+                if (isHidden) {
+                    membersSidebar.classList.remove('hidden');
+                    membersSidebar.classList.add('block');
+                    toggleMembersBtn.textContent = '✕';
+                    toggleMembersBtn.title = 'Hide Members';
+                } else {
+                    membersSidebar.classList.add('hidden');
+                    membersSidebar.classList.remove('block');
+                    toggleMembersBtn.textContent = '👥';
+                    toggleMembersBtn.title = 'Show Members';
+                }
+            });
+        }
+        
+        // Start with phone view
+        setView('phone');
+    </script>
+</body>
+</html> 
