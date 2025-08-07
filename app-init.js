@@ -28,10 +28,6 @@ function initializeApp() {
         const apiKey = document.getElementById('gemini-api-key').value.trim();
         const startPrompt = document.getElementById('starting-prompt').value.trim();
 
-        console.log('🔍 DEBUG - API Key length:', apiKey.length);
-        console.log('🔍 DEBUG - Starting prompt:', startPrompt);
-        console.log('🔍 DEBUG - Starting prompt length:', startPrompt.length);
-
         if (!apiKey || !startPrompt) {
             createCustomConfirm(languageManager.getText('apiKeyRequired'));
             return;
@@ -77,10 +73,7 @@ function initializeApp() {
     joinSessionBtn.addEventListener('click', async () => {
         const sessionId = document.getElementById('session-id-input').value.trim();
 
-        console.log('Join session attempt:', { sessionId });
-
         if (!sessionId) {
-            console.log('Validation failed: session ID is empty');
             createCustomConfirm(languageManager.getText('sessionIdRequired'));
             return;
         }
@@ -172,44 +165,43 @@ function initializeApp() {
         }
     });
 
-    // Function to populate existing players list
+    // Function to populate existing players in the modal
     function populateExistingPlayers() {
         const existingPlayersList = document.getElementById('existing-players-list');
         const existingPlayersSection = document.getElementById('existing-players-section');
 
-        if (!existingPlayersList || !window.currentSession) {
-            console.log('🔍 populateExistingPlayers: Missing elements or session');
+        if (!existingPlayersList || !existingPlayersSection) {
+            console.error('Existing players elements not found');
             return;
         }
 
-        const players = window.currentSession.players || {};
-        const playerNames = Object.values(players);
+        // Get current players from the session
+        const currentPlayers = window.currentSession?.players || {};
+        const playerNames = Object.values(currentPlayers);
 
-        console.log('🔍 populateExistingPlayers: Found players:', playerNames);
+        if (playerNames.length > 0) {
+            existingPlayersSection.classList.remove('hidden');
+            existingPlayersList.innerHTML = '';
 
-        if (playerNames.length === 0) {
-            existingPlayersSection.classList.add('hidden');
-            console.log('🔍 populateExistingPlayers: No players, hiding section');
-            return;
-        }
-
-        existingPlayersSection.classList.remove('hidden');
-        existingPlayersList.innerHTML = '';
-        console.log('🔍 populateExistingPlayers: Showing section with', playerNames.length, 'players');
-
-        playerNames.forEach(playerName => {
-            const playerButton = document.createElement('button');
-            playerButton.className = 'w-full text-left p-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition duration-200';
-            playerButton.textContent = playerName;
-            playerButton.addEventListener('click', () => {
-                joinAsExistingPlayer(playerName);
+            playerNames.forEach(playerName => {
+                const playerButton = document.createElement('button');
+                playerButton.className = 'w-full bg-gray-700 hover:bg-gray-600 text-white p-2 rounded text-left transition duration-300';
+                playerButton.textContent = playerName;
+                playerButton.addEventListener('click', () => {
+                    joinAsExistingPlayer(playerName);
+                });
+                existingPlayersList.appendChild(playerButton);
             });
-            existingPlayersList.appendChild(playerButton);
-        });
+        } else {
+            existingPlayersSection.classList.add('hidden');
+        }
     }
 
     // Function to join as existing player
     async function joinAsExistingPlayer(name) {
+        // Get player name display element first
+        const playerNameDisplay = document.getElementById('player-name-display');
+
         // Disable all buttons in the modal to prevent multiple requests
         const allButtons = document.querySelectorAll('#character-modal button');
         allButtons.forEach(btn => {
@@ -221,6 +213,54 @@ function initializeApp() {
             window.characterName = name;
             playerNameDisplay.textContent = name;
 
+            // Apply player color
+            const playerColor = window.turnSystem?.memberManager?.getPlayerColor(name) || 'text-blue-400';
+
+            if (playerNameDisplay) {
+                playerNameDisplay.textContent = name;
+                playerNameDisplay.className = 'font-semibold ' + playerColor;
+
+                // Check if color is actually applied
+                setTimeout(() => {
+                    const computedStyle = window.getComputedStyle(playerNameDisplay);
+
+                    // If color class didn't work, try inline style
+                    if (!playerNameDisplay.className.includes('text-') || computedStyle.color === 'rgb(156, 163, 175)') {
+                        const colorMap = {
+                            'text-red-400': '#f87171',
+                            'text-blue-400': '#60a5fa',
+                            'text-green-400': '#4ade80',
+                            'text-yellow-400': '#facc15',
+                            'text-purple-400': '#c084fc',
+                            'text-pink-400': '#f472b6',
+                            'text-indigo-400': '#818cf8',
+                            'text-emerald-400': '#34d399'
+                        };
+                        const hexColor = colorMap[playerColor] || '#60a5fa';
+                        playerNameDisplay.style.color = hexColor;
+                    }
+                }, 100);
+
+                // Fallback: ensure color is applied after a short delay
+                setTimeout(() => {
+                    if (!playerNameDisplay.className.includes('text-')) {
+                        playerNameDisplay.className = 'font-semibold ' + playerColor;
+                    }
+                }, 200);
+
+                // Retry mechanism: if turn system isn't ready, retry after a delay
+                if (!window.turnSystem?.memberManager) {
+                    setTimeout(() => {
+                        if (window.turnSystem?.memberManager) {
+                            const retryColor = window.turnSystem.memberManager.getPlayerColor(name);
+                            playerNameDisplay.className = 'font-semibold ' + retryColor;
+                        }
+                    }, 1000);
+                }
+            } else {
+                console.error('Player name display element not found (existing player)');
+            }
+
             // Hide modal
             characterModal.classList.add('hidden');
             playerInfo.classList.remove('hidden');
@@ -230,7 +270,6 @@ function initializeApp() {
 
             // Trigger auto-stats generation for existing character
             if (window.currentSession?.gemini_api_key) {
-                console.log('🆕 Triggering auto-stats generation for:', name);
                 batchRequestCharacterStats([name], window.currentSession.gemini_api_key).catch(error => {
                     console.error('Error requesting stats for existing character:', error);
                 });
@@ -243,6 +282,19 @@ function initializeApp() {
             });
         }
     }
+
+    // Test function to manually apply player color (for debugging)
+    window.testPlayerColor = function (playerName) {
+        const playerColor = window.turnSystem?.memberManager?.getPlayerColor(playerName) || 'text-blue-400';
+        const playerNameDisplay = document.getElementById('player-name-display');
+
+        if (playerNameDisplay) {
+            playerNameDisplay.textContent = playerName;
+            playerNameDisplay.className = 'font-semibold ' + playerColor;
+        } else {
+            console.error('Test: Player name display element not found');
+        }
+    };
 
     // Character creation
     createCharacterBtn.addEventListener('click', async () => {
@@ -265,6 +317,9 @@ function initializeApp() {
         try {
             characterName = name;
             window.characterName = name;
+
+            // Get player name display element first
+            const playerNameDisplay = document.getElementById('player-name-display');
             playerNameDisplay.textContent = name;
 
             // Check if this is a new session (no current session exists)
@@ -273,14 +328,11 @@ function initializeApp() {
                 const startPrompt = window.pendingSessionData.startingPrompt;
                 const apiKey = window.pendingSessionData.apiKey;
 
-                console.log('🔍 DEBUG - Creating session with data:', { startPrompt, characterName: name });
-
                 // Generate the game setup prompt using the template
                 const gameSetupPrompt = languageManager.getText('gameSetupTemplate', {
                     worldDescription: startPrompt,
                     characterName: name
                 });
-                console.log('🔍 DEBUG - Generated game setup prompt:', gameSetupPrompt);
 
                 // Create session first to get session ID
                 const session = await createSession(apiKey, startPrompt);
@@ -303,7 +355,6 @@ function initializeApp() {
 
                 // Combine game setup with turn prompt
                 const combinedPrompt = `${gameSetupPrompt}\n\n${turnPrompt}`;
-                console.log('🔍 DEBUG - Combined prompt with turn system:', combinedPrompt);
 
                 // Show thinking indicator
                 showThinkingIndicator();
@@ -326,8 +377,6 @@ function initializeApp() {
                         turn_order: [name],
                         players: { [name]: name }
                     });
-
-                    console.log('🔍 DEBUG - Chat history updated:', initialHistory);
 
                     // Update global chat history variables
                     window.chatHistory = initialHistory;
@@ -361,19 +410,15 @@ function initializeApp() {
                             await updateSession(window.currentSessionId, {
                                 ...window.turnSystem.getSessionData()
                             });
-                            console.log('✅ Player added to session:', name);
 
                             // For new characters (not the first character), send character joining prompt
                             if (!window.pendingSessionData && window.currentSession?.gemini_api_key) {
-                                console.log('🆕 New character joining, sending character joining prompt');
 
                                 // Generate character joining prompt
                                 const characterJoiningPrompt = languageManager.getText('characterJoiningTemplate', {
                                     characterName: name,
                                     background: description || 'No background provided'
                                 });
-
-                                console.log('🔍 DEBUG - Character joining prompt:', characterJoiningPrompt);
 
                                 // Show thinking indicator
                                 showThinkingIndicator();
@@ -401,10 +446,7 @@ function initializeApp() {
                                     window.chatHistory = updatedChatHistory;
                                     chatHistory = updatedChatHistory;
 
-                                    console.log('✅ Character joining response added to chat history');
-
                                     // Display the new messages immediately in the UI
-                                    // Use the existing characterJoiningHistory variable that was already created above
                                     characterJoiningHistory.forEach(msg => {
                                         displayMessage({
                                             text: msg.parts[0].text,
@@ -414,7 +456,6 @@ function initializeApp() {
                                     });
 
                                     // Now request stats after the character joining response is processed
-                                    console.log('🆕 Triggering auto-stats generation for:', name);
                                     batchRequestCharacterStats([name], window.currentSession.gemini_api_key).catch(error => {
                                         console.error('Error in auto-stats generation:', error);
                                     });
@@ -422,7 +463,6 @@ function initializeApp() {
                             } else {
                                 // For existing characters or first character, request stats immediately
                                 if (window.currentSession?.gemini_api_key) {
-                                    console.log('🆕 Triggering auto-stats generation for:', name);
                                     batchRequestCharacterStats([name], window.currentSession.gemini_api_key).catch(error => {
                                         console.error('Error in auto-stats generation:', error);
                                     });
@@ -434,11 +474,51 @@ function initializeApp() {
                     }
                 }
 
-                const playerColor = window.turnSystem.memberManager.getPlayerColor(name);
-                const playerNameDisplay = document.getElementById('player-name-display');
+                const playerColor = window.turnSystem?.memberManager?.getPlayerColor(name) || 'text-blue-400';
 
                 if (playerNameDisplay) {
+                    playerNameDisplay.textContent = name;
                     playerNameDisplay.className = 'font-semibold ' + playerColor;
+
+                    // Check if color is actually applied
+                    setTimeout(() => {
+                        const computedStyle = window.getComputedStyle(playerNameDisplay);
+
+                        // If color class didn't work, try inline style
+                        if (!playerNameDisplay.className.includes('text-') || computedStyle.color === 'rgb(156, 163, 175)') {
+                            const colorMap = {
+                                'text-red-400': '#f87171',
+                                'text-blue-400': '#60a5fa',
+                                'text-green-400': '#4ade80',
+                                'text-yellow-400': '#facc15',
+                                'text-purple-400': '#c084fc',
+                                'text-pink-400': '#f472b6',
+                                'text-indigo-400': '#818cf8',
+                                'text-emerald-400': '#34d399'
+                            };
+                            const hexColor = colorMap[playerColor] || '#60a5fa';
+                            playerNameDisplay.style.color = hexColor;
+                        }
+                    }, 100);
+
+                    // Fallback: ensure color is applied after a short delay
+                    setTimeout(() => {
+                        if (!playerNameDisplay.className.includes('text-')) {
+                            playerNameDisplay.className = 'font-semibold ' + playerColor;
+                        }
+                    }, 200);
+
+                    // Retry mechanism: if turn system isn't ready, retry after a delay
+                    if (!window.turnSystem?.memberManager) {
+                        setTimeout(() => {
+                            if (window.turnSystem?.memberManager) {
+                                const retryColor = window.turnSystem.memberManager.getPlayerColor(name);
+                                playerNameDisplay.className = 'font-semibold ' + retryColor;
+                            }
+                        }, 1000);
+                    }
+                } else {
+                    console.error('Player name display element not found');
                 }
             }
 

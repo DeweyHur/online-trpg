@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Colors Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <h1 class="text-3xl font-bold mb-6">Player Colors Test</h1>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Test Controls -->
+        <div class="bg-gray-800 p-6 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">Color Test</h2>
+            <div class="space-y-4">
+                <button id="test-colors" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded">
+                    Test Player Colors
+                </button>
+                <button id="test-player-name" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+                    Test Player Name Display
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="bg-gray-800 p-6 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">Results</h2>
+            <div id="test-results" class="space-y-4">
+                <div class="text-sm text-gray-400">Click a test button to see results...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Player Name Display Test -->
+    <div class="mt-8">
+        <h2 class="text-xl font-semibold mb-4">Player Name Display</h2>
+        <div class="bg-gray-800 p-4 rounded-lg">
+            <p class="text-sm"><span>Playing as:</span> <span id="player-name-display" class="font-semibold">김민준</span></p>
+        </div>
+    </div>
+
+    <script src="languages-en.js"></script>
+    <script src="turn-system.js"></script>
+    <script>
+        // Initialize test components
+        const languageManager = {
+            getText: (key, params = {}) => {
+                const texts = {
+                    'turnPrompt': 'Current session members: {playerList}\n\nIt\'s now the turn of: ${currentTurn}$\n\nThis player should take their action now.',
+                    'chatPrompt': 'Current session members: {playerList}\n\nIt\'s currently {currentTurn}\'s turn.\nYou are {currentPlayerName}.',
+                    'noPlayersText': 'No players',
+                    'waitingText': 'waiting'
+                };
+                let text = texts[key] || key;
+                Object.keys(params).forEach(param => {
+                    text = text.replace(new RegExp(`{${param}}`, 'g'), params[param]);
+                });
+                return text;
+            }
+        };
+
+        const turnSystem = new TurnSystem(languageManager);
+        const memberManager = new MemberManager(turnSystem);
+
+        // Initialize with test data
+        turnSystem.initialize({
+            current_turn: '김민준',
+            turn_order: ['김민준', '이서현'],
+            players: { '1': '김민준', '2': '이서현' }
+        });
+
+        memberManager.initialize('test-members-list');
+
+        function logResult(message) {
+            const resultsDiv = document.getElementById('test-results');
+            const resultItem = document.createElement('div');
+            resultItem.className = 'text-sm bg-gray-700 p-2 rounded';
+            resultItem.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            resultsDiv.appendChild(resultItem);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        // Test player colors
+        document.getElementById('test-colors').addEventListener('click', () => {
+            const players = ['김민준', '이서현', '박지민', '최수진'];
+            
+            players.forEach((playerName, index) => {
+                const color = memberManager.getPlayerColor(playerName);
+                const bgColor = memberManager.getPlayerBgColor(playerName);
+                logResult(`${playerName}: ${color} (${bgColor})`);
+            });
+        });
+
+        // Test player name display
+        document.getElementById('test-player-name').addEventListener('click', () => {
+            const playerNameDisplay = document.getElementById('player-name-display');
+            const playerColor = memberManager.getPlayerColor('김민준');
+            
+            logResult(`Setting player name: 김민준 with color: ${playerColor}`);
+            
+            playerNameDisplay.textContent = '김민준';
+            playerNameDisplay.className = 'font-semibold ' + playerColor;
+            
+            logResult(`Updated element: ${playerNameDisplay.outerHTML}`);
+            
+            // Check computed styles
+            setTimeout(() => {
+                const computedStyle = window.getComputedStyle(playerNameDisplay);
+                logResult(`Computed color: ${computedStyle.color}`);
+            }, 100);
+        });
+
+        logResult('Player colors test ready');
+    </script>
+</body>
+</html> 

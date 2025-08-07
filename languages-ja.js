@@ -30,7 +30,7 @@ const LANGUAGES_JA = {
 
     // Game setup template
     gameSetupTemplate: "新しいTRPGゲームをプレイする予定です。世界は {worldDescription} で説明されています。主人公は {characterName} で、このゲームを開始したいと思います。人々は自由に参加したり去ったりできるので、この点を念頭に置いてください。\n\n最初のシーンを生き生きと描写してください。雰囲気を設定し、{characterName} に相互作用できる明確な開始状況を提供してください。環境、即座の挑戦や機会、そして {characterName} がこの瞬間に見たり、聞いたり、感じたりできるものを描写してください。",
-    
+
     // Character joining template
     characterJoiningTemplate: "新しいキャラクター {characterName} が世界に参加しました。彼/彼女の背景は {background} です。そのキャラクターがこの状況にどのように参加するかを説明してください。",
 

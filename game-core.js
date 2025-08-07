@@ -612,7 +612,7 @@ function generateBatchShortStatsPrompt(characterNames, campaignContext, language
 
     // Generate character list for the format
     const characterList = characterNames.map(name =>
-        `${name},<stat_name_1>,<value_1>\n${name},<stat_name_2>,<value_2>\n${name},<stat_name_3>,<value_3}\n${name},<stat_name_4>,<value_4>\n${name},<stat_name_5>,<value_5>`
+        `${name},<stat_name_1>,<value_1>\n${name},<stat_name_2>,<value_2>\n${name},<stat_name_3>,<value_3>\n${name},<stat_name_4>,<value_4>\n${name},<stat_name_5>,<value_5>`
     ).join('\n');
 
     return `${template.title}
@@ -821,10 +821,12 @@ async function pollSession() {
 
                     // Update UI components if memberManager exists
                     if (memberManager) {
-                        console.log('🔍 DEBUG - Updating member display after session change');
                         memberManager.updateMembersDisplay();
-                    } else {
-                        console.log('🔍 DEBUG - memberManager not available for update');
+                    }
+
+                    // Update scene description display if sceneDescriptionManager exists
+                    if (sceneDescriptionManager) {
+                        sceneDescriptionManager.updateSceneDisplay();
                     }
 
                     // Re-render chat history with updated player highlighting
@@ -920,6 +922,27 @@ async function pollSession() {
                         });
                     }
 
+                    // Check for latest turn command in entire chat history
+                    const latestTurnPlayer = findLatestTurnCommand(newChatHistory);
+                    if (latestTurnPlayer && turnSystem) {
+                        // Update turn system if different from current turn
+                        if (turnSystem.currentTurn !== latestTurnPlayer) {
+                            turnSystem.currentTurn = latestTurnPlayer;
+                            turnSystem.updateTurnStatus();
+
+                            // Update input mode manager after turn change
+                            if (inputModeManager) {
+                                inputModeManager.resetManualMode();
+                                inputModeManager.updateMode();
+                            }
+
+                            // Update session with new turn
+                            await updateSession(window.currentSession.id, {
+                                current_turn: latestTurnPlayer
+                            });
+                        }
+                    }
+
                     // Only add new messages instead of re-rendering everything
                     if (newChatHistory.length > window.chatHistory.length) {
                         const newMessages = newChatHistory.slice(window.chatHistory.length);
@@ -933,12 +956,12 @@ async function pollSession() {
                                 author: msg.author || (msg.role === 'model' ? 'GM' : 'Player')
                             });
 
-                            // Process commands in GM messages
+                            // Process other commands in GM messages (but not turn commands since we handle them above)
                             if (msg.role === 'model') {
-                                console.log('🔍 DEBUG - Processing commands in GM message:', msg.parts[0].text.substring(0, 100) + '...');
+                                console.log('🔍 DEBUG - Processing non-turn commands in GM message:', msg.parts[0].text.substring(0, 100) + '...');
                                 const commandUpdates = turnSystem.processCommands(msg.parts[0].text);
                                 console.log('🔍 DEBUG - Command updates:', commandUpdates);
-                                
+
                                 if (Object.keys(commandUpdates).length > 0) {
                                     console.log('🔍 DEBUG - Updating session with command changes:', commandUpdates);
                                     // Update session with command changes
@@ -991,6 +1014,23 @@ async function pollSession() {
 
 
 // --- UTILITY FUNCTIONS ---
+
+// Find the latest turn command in chat history
+function findLatestTurnCommand(chatHistory) {
+    for (let i = chatHistory.length - 1; i >= 0; i--) {
+        const message = chatHistory[i];
+        if (message.role === 'model' && message.parts && message.parts[0] && message.parts[0].text) {
+            const text = message.parts[0].text;
+            const turnPattern = /\$([^$]+)\$/g;
+            const matches = text.match(turnPattern);
+            if (matches) {
+                return matches[0].replace(/\$/g, '');
+            }
+        }
+    }
+    return null;
+}
+
 function updateGlobalVariables(session) {
     window.currentSession = session;
     currentSession = session;

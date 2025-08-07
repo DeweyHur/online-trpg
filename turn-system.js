@@ -84,14 +84,10 @@ class TurnSystem {
         const commands = [];
         let match;
 
-        console.log('🔍 DEBUG - parseCommands called with text:', text.substring(0, 200) + '...');
-
         while ((match = commandPattern.exec(text)) !== null) {
-            console.log('🔍 DEBUG - Found command match:', match[1], '=', match[2]);
-            
+
             // Skip GeminiStats commands as they're handled by characterStatsManager
             if (match[1].trim().toLowerCase() === 'geministats') {
-                console.log('🔍 DEBUG - Skipping GeminiStats command');
                 continue;
             }
 
@@ -99,12 +95,10 @@ class TurnSystem {
                 command: match[1].trim(),
                 value: match[2].trim()
             };
-            
-            console.log('🔍 DEBUG - Adding command:', command);
+
             commands.push(command);
         }
 
-        console.log('🔍 DEBUG - parseCommands returning:', commands);
         return commands;
     }
 
@@ -113,8 +107,6 @@ class TurnSystem {
         const commands = this.parseCommands(text);
         const updates = {};
 
-        console.log('🔍 DEBUG - processCommands called with commands:', commands);
-
         // Process character stats commands if stats manager exists
         if (window.characterStatsManager) {
             const statsUpdates = window.characterStatsManager.processCommands(text);
@@ -122,23 +114,11 @@ class TurnSystem {
         }
 
         commands.forEach(cmd => {
-            console.log('🔍 DEBUG - Processing command:', cmd);
-            
+
             switch (cmd.command.toLowerCase()) {
                 case 'turn':
-                    console.log('🔍 DEBUG - Processing turn command for:', cmd.value);
-                    // Only set turn if the player exists in the session
-                    const playerNames = Object.values(this.players);
-                    console.log('🔍 DEBUG - Available players:', playerNames);
-                    
-                    if (playerNames.includes(cmd.value)) {
-                        console.log('🔍 DEBUG - Setting turn to:', cmd.value);
-                        this.currentTurn = cmd.value;
-                        this.updateTurnStatus();
-                        updates.current_turn = cmd.value;
-                    } else {
-                        console.warn(`Cannot set turn to ${cmd.value} - player not in session. Available players: ${playerNames.join(', ')}`);
-                    }
+                    // Turn commands are now handled separately in the polling system
+                    // to ensure we always use the latest turn command from the entire chat history
                     break;
                 // Add more commands here as needed
                 default:
@@ -146,7 +126,6 @@ class TurnSystem {
             }
         });
 
-        console.log('🔍 DEBUG - processCommands returning updates:', updates);
         return updates;
     }
 
@@ -205,11 +184,9 @@ class TurnSystem {
         // Include character stats data if available
         if (window.characterStatsManager) {
             const statsData = window.characterStatsManager.getSessionData();
-            console.log('🔍 DEBUG - Character stats data being added to session:', statsData);
             Object.assign(sessionData, statsData);
         }
 
-        console.log('🔍 DEBUG - Final session data being returned:', sessionData);
         return sessionData;
     }
 
@@ -469,30 +446,19 @@ class InputModeManager {
     updateMode() {
         // Only auto-update if user hasn't manually set the mode
         if (!this.manualModeSet) {
-            console.log('Auto-updating mode:', {
-                isMyTurn: this.turnSystem.isMyTurn,
-                currentTurn: this.turnSystem.currentTurn,
-                currentPlayerName: this.turnSystem.currentPlayerName,
-                manualModeSet: this.manualModeSet
-            });
-
             if (this.turnSystem.isMyTurn) {
                 this.setMode('prompt');
             } else {
                 this.setMode('chat');
             }
-        } else {
-            console.log('Skipping auto-update - manual mode set');
         }
     }
 
     // Set specific mode
     setMode(mode, isManual = false) {
-        console.log('Setting mode:', { mode, isManual, previousMode: this.currentMode });
         this.currentMode = mode;
         if (isManual) {
             this.manualModeSet = true;
-            console.log('Manual mode set to true');
         }
         this.updateUI();
     }
