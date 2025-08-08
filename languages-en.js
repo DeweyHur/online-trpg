@@ -98,6 +98,21 @@ const LANGUAGES_EN = {
     // Turn system prompts
     turnPrompt: "Current session members: {playerList}\n\nIt's now the turn of: ${currentTurn}$\n\nThis player should take their action now. Other players please wait.\n\nAfter the player's action, please respond with ${Turn=PlayerName} to set the next player's turn. Only use players who are in the member list.",
     chatPrompt: "Current session members: {playerList}\n\nIt's currently {currentTurn}'s turn.\nYou are {currentPlayerName}.\n\nThis is general chat. Do not proceed with the game as no action is being taken.\n\nAfter the player's action, please respond with ${Turn=PlayerName} to set the next player's turn. Only use players who are in the member list.",
+
+    // Voice mode
+    voiceMode: "Voice Mode",
+    enableVoice: "Enable Voice",
+    disableVoice: "Disable Voice",
+    voice: "Voice",
+    speed: "Speed",
+    pitch: "Pitch",
+    volume: "Volume",
+    autoReadMessages: "Auto-read new messages",
+    readAllMessages: "Read all messages",
+    readGMOnly: "Read GM messages only",
+    readPlayerOnly: "Read player messages only",
+    speakCurrent: "Speak Current",
+    stopSpeaking: "Stop Speaking",
     waitingText: "waiting",
     noPlayersText: "No players",
 

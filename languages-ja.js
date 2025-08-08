@@ -95,6 +95,21 @@ const LANGUAGES_JA = {
     // Turn system prompts
     turnPrompt: "現在のセッションメンバー: {playerList}\n\n次のプレイヤーの番です: ${currentTurn}$\n\nこのプレイヤーが行動を取る番です。他のプレイヤーはお待ちください。\n\nプレイヤーの行動後、${Turn=PlayerName}で次のプレイヤーの番を設定してください。メンバーリストにいるプレイヤーのみ使用してください。",
     chatPrompt: "現在のセッションメンバー: {playerList}\n\n現在 {currentTurn} の番です。\nあなたは {currentPlayerName} です。\n\nこれは一般的なチャットです。行動を取らないのでゲームを進行しないでください。\n\nプレイヤーの行動後、${Turn=PlayerName}で次のプレイヤーの番を設定してください。メンバーリストにいるプレイヤーのみ使用してください。",
+
+    // Voice mode
+    voiceMode: "音声モード",
+    enableVoice: "音声を有効にする",
+    disableVoice: "音声を無効にする",
+    voice: "音声",
+    speed: "速度",
+    pitch: "音調",
+    volume: "音量",
+    autoReadMessages: "新しいメッセージを自動読み上げ",
+    readAllMessages: "すべてのメッセージを読み上げ",
+    readGMOnly: "GMメッセージのみ読み上げ",
+    readPlayerOnly: "プレイヤーメッセージのみ読み上げ",
+    speakCurrent: "現在を読み上げ",
+    stopSpeaking: "読み上げ停止",
     waitingText: "待機中",
     noPlayersText: "プレイヤーなし",
 
