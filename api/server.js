@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
+const fetch = require('node-fetch');
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -144,6 +145,70 @@ async function handleApiRequest(req, res, pathname, method) {
             }
         } catch (error) {
             res.status(400).json({ error: error.message });
+        }
+    } else if (pathname === '/api/tts' && method === 'POST') {
+        // Text-to-Speech proxy endpoint (Azure Speech or other providers)
+        try {
+            const chunks = [];
+            for await (const chunk of req) {
+                chunks.push(chunk);
+            }
+            const rawBody = Buffer.concat(chunks).toString('utf8');
+            const { text, voice, style, rate } = JSON.parse(rawBody || '{}');
+
+            const provider = process.env.TTS_PROVIDER || '';
+
+            if (!provider) {
+                return res.status(400).json({ error: 'TTS not configured' });
+            }
+
+            if (provider === 'azure') {
+                const region = process.env.AZURE_SPEECH_REGION;
+                const key = process.env.AZURE_SPEECH_KEY;
+                if (!region || !key) {
+                    return res.status(400).json({ error: 'Azure Speech not configured' });
+                }
+
+                // Build SSML
+                const selectedVoice = voice || 'en-US-JennyNeural';
+                const prosodyRate = rate || '0%';
+                const ssml = `<?xml version="1.0" encoding="UTF-8"?>
+<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US">
+  <voice name="${selectedVoice}">
+    <mstts:express-as style="${style || 'general'}">
+      <prosody rate="${prosodyRate}">${(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</prosody>
+    </mstts:express-as>
+  </voice>
+</speak>`;
+
+                const ttsUrl = `https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`;
+                const ttsResp = await fetch(ttsUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Ocp-Apim-Subscription-Key': key,
+                        'Content-Type': 'application/ssml+xml',
+                        'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3',
+                        'User-Agent': 'online-trpg-voice'
+                    },
+                    body: ssml
+                });
+
+                if (!ttsResp.ok) {
+                    const errorText = await ttsResp.text();
+                    throw new Error(`Azure TTS error ${ttsResp.status}: ${errorText}`);
+                }
+
+                const audioBuffer = Buffer.from(await ttsResp.arrayBuffer());
+                res.setHeader('Content-Type', 'audio/mpeg');
+                res.setHeader('Cache-Control', 'no-store');
+                res.end(audioBuffer);
+                return;
+            }
+
+            return res.status(400).json({ error: 'Unsupported TTS provider' });
+        } catch (error) {
+            console.error('TTS error:', error);
+            res.status(400).json({ error: error.message || 'TTS failed' });
         }
     } else {
         res.status(404).json({ error: 'API endpoint not found' });

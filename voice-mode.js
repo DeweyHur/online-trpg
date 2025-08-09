@@ -116,8 +116,8 @@ class VoiceMode {
         });
     }
 
-    speakText(text) {
-        if (!this.isEnabled || !('speechSynthesis' in window)) {
+    async speakText(text) {
+        if (!this.isEnabled) {
             return;
         }
 
@@ -128,6 +128,31 @@ class VoiceMode {
         }
 
         try {
+            // Try external TTS first if configured
+            if (window.EXTERNAL_TTS_ENABLED === 'true' && window.TTS_PROVIDER === 'azure') {
+                const voice = window.AZURE_DEFAULT_VOICE || 'en-US-JennyNeural';
+                const resp = await fetch('/api/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: cleanText, voice, style: 'general', rate: '0%' })
+                });
+                if (resp.ok) {
+                    const blob = await resp.blob();
+                    const url = URL.createObjectURL(blob);
+                    const audio = new Audio(url);
+                    this.isSpeaking = true;
+                    audio.onended = () => {
+                        this.isSpeaking = false;
+                        URL.revokeObjectURL(url);
+                    };
+                    await audio.play();
+                    return;
+                } else {
+                    console.warn('External TTS failed, falling back to browser TTS');
+                }
+            }
+
+            // Fallback: Web Speech API
             if (!('speechSynthesis' in window)) {
                 console.error('❌ Speech synthesis not supported in this browser');
                 return;
@@ -135,19 +160,15 @@ class VoiceMode {
 
             const voices = speechSynthesis.getVoices();
             console.log('Available voices count:', voices.length);
-
             if (voices.length === 0) {
                 console.error('No voices available!');
                 return;
             }
 
-            // Create utterance
             const utterance = new SpeechSynthesisUtterance(cleanText);
             utterance.rate = 0.9;
             utterance.pitch = 1.0;
             utterance.volume = 1.0;
-
-            // Use selected voice if available, otherwise use first available
             if (this.selectedVoice) {
                 utterance.voice = this.selectedVoice;
                 console.log('Using selected voice:', this.selectedVoice.name);
@@ -155,31 +176,11 @@ class VoiceMode {
                 utterance.voice = voices[0];
                 console.log('Using fallback voice:', voices[0].name);
             }
+            utterance.onstart = () => { this.isSpeaking = true; };
+            utterance.onend = () => { this.isSpeaking = false; };
+            utterance.onerror = () => { this.isSpeaking = false; };
 
-            // Set up event handlers
-            utterance.onstart = () => {
-                console.log('✅ Speech started successfully');
-                this.isSpeaking = true;
-            };
-
-            utterance.onend = () => {
-                console.log('✅ Speech ended successfully');
-                this.isSpeaking = false;
-            };
-
-            utterance.onerror = (event) => {
-                console.error('❌ Speech error:', event);
-                this.isSpeaking = false;
-            };
-
-            // Speak the text
-            console.log('🎤 Calling speechSynthesis.speak for automatic speech...');
-            try {
-                speechSynthesis.speak(utterance);
-                console.log('✅ Automatic speech speak() called successfully');
-            } catch (error) {
-                console.error('❌ Error calling speak() for automatic speech:', error);
-            }
+            speechSynthesis.speak(utterance);
 
         } catch (error) {
             console.error('Error in speakText:', error);
