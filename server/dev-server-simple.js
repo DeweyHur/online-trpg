@@ -9,8 +9,8 @@ const PORT = process.env.PORT || 3000;
 let sessions = new Map();
 let sessionCounter = 1;
 
-// Read the HTML file
-let htmlContent = fs.readFileSync(path.join(__dirname, 'index-server.html'), 'utf8');
+// Read the HTML file from public directory
+let htmlContent = fs.readFileSync(path.join(__dirname, '..', 'public', 'index-server.html'), 'utf8');
 
 const server = http.createServer(async (req, res) => {
     // Set CORS headers for all responses
@@ -35,13 +35,32 @@ const server = http.createServer(async (req, res) => {
             // Serve the main HTML file
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(htmlContent);
-        } else if (pathname === '/index-server.html') {
-            // Serve the server gateway HTML file
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(htmlContent);
+        } else if (pathname.endsWith('.html')) {
+            // Serve any HTML file from public
+            const filePath = path.join(__dirname, '..', 'public', pathname.substring(1));
+            if (fs.existsSync(filePath)) {
+                const content = fs.readFileSync(filePath, 'utf8');
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end(content);
+            } else {
+                res.writeHead(404);
+                res.end('File not found');
+            }
         } else if (pathname.startsWith('/api/')) {
             // Handle API requests
             await handleApiRequest(req, res, pathname, method);
+        } else if (pathname.endsWith('.js') || pathname.endsWith('.css')) {
+            // Serve static JS/CSS files from public
+            const filePath = path.join(__dirname, '..', 'public', pathname.substring(1));
+            if (fs.existsSync(filePath)) {
+                const content = fs.readFileSync(filePath, 'utf8');
+                const contentType = pathname.endsWith('.js') ? 'application/javascript' : 'text/css';
+                res.writeHead(200, { 'Content-Type': contentType });
+                res.end(content);
+            } else {
+                res.writeHead(404);
+                res.end('File not found');
+            }
         } else {
             res.writeHead(404);
             res.end('Not Found');

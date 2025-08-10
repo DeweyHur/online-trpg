@@ -140,16 +140,50 @@ The application will automatically detect and use these environment variables.
 ## File Structure
 
 ```
-├── index.html              # Main application (Supabase version)
+├── public/                # Static site root
+│   ├── index.html         # Main application (server gateway)
+│   ├── index-supabase.html
+│   ├── index-server.html
+│   ├── index-firebase.html
+│   ├── js/                # Client-side JavaScript
+│   │   ├── turn-system.js
+│   │   ├── character-stats.js
+│   │   ├── voice-mode.js
+│   │   └── ...
+│   └── i18n/              # Language files
+│       ├── languages-en.js
+│       ├── languages-ko.js
+│       ├── languages-ja.js
+│       └── languages.js
+├── api/                   # Vercel serverless endpoints
+│   ├── server.js
+│   └── config.js
+├── server/                # Server-side scripts and development tools
+│   ├── dev-server.js      # Development server with Supabase gateway
+│   ├── dev-server-simple.js # Simple dev server (in-memory)
+│   ├── run-dev.js         # Node version check + server launcher
+│   └── build.js           # Build script (outputs to public/index-built.html)
 ├── vercel.json            # Vercel deployment configuration
+├── docs/                  # Documentation files
+│   ├── README.md          # This file
+│   ├── SETUP.md           # Setup instructions
+│   ├── CHARACTER_STATS_README.md
+│   ├── VOICE_MODE_README.md
+│   └── ...                # Other documentation
 ├── supabase-schema.sql    # Database schema
 ├── package.json           # Node.js dependencies
-├── dev-server.js          # Development server with env support
-├── build.js               # Build script for environment variables
-├── api/config.js          # Vercel API endpoint for config
-├── env.example            # Environment variables template
-└── README.md              # This file
+└── env.example            # Environment variables template
 ```
+
+### Local Development
+
+Use the gateway dev server:
+
+```bash
+npm run dev
+```
+
+Then open `http://localhost:3000/` (serves from `public/`).
 
 ## Customization
 

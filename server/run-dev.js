@@ -16,7 +16,7 @@ if (majorVersion < 20) {
     console.log('');
     console.log('To use nvm:');
     console.log('  nvm use 23.11.0');
-    console.log('  node dev-server.js');
+    console.log('  node server/dev-server.js');
     console.log('');
     process.exit(1);
 }

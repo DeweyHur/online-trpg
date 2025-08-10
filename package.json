@@ -5,12 +5,12 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "main": "dev-server.js",
+  "main": "server/dev-server.js",
   "scripts": {
-    "dev": "$HOME/.nvm/versions/node/v23.11.0/bin/node run-dev.js",
-    "dev-simple": "$HOME/.nvm/versions/node/v23.11.0/bin/node dev-server-simple.js",
-    "start": "$HOME/.nvm/versions/node/v23.11.0/bin/node run-dev.js",
-    "build": "$HOME/.nvm/versions/node/v23.11.0/bin/node build.js",
+    "dev": "$HOME/.nvm/versions/node/v23.11.0/bin/node server/run-dev.js",
+    "dev-simple": "$HOME/.nvm/versions/node/v23.11.0/bin/node server/dev-server-simple.js",
+    "start": "$HOME/.nvm/versions/node/v23.11.0/bin/node server/run-dev.js",
+    "build": "$HOME/.nvm/versions/node/v23.11.0/bin/node server/build.js",
     "vercel-build": "echo 'Build complete'"
   },
   "dependencies": {

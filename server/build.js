@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-// Read the source HTML file
-const sourcePath = path.join(__dirname, 'index.html');
-const targetPath = path.join(__dirname, 'index-built.html');
+// Read the source HTML file from public and write built output also in public
+const sourcePath = path.join(__dirname, '..', 'public', 'index.html');
+const targetPath = path.join(__dirname, '..', 'public', 'index-built.html');
 
 let htmlContent = fs.readFileSync(sourcePath, 'utf8');
 

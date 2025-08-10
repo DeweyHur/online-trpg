@@ -9,8 +9,8 @@ const supabase = createClient(
     process.env.SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY'
 );
 
-// Read the HTML file
-const htmlContent = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+// Read the HTML file from public directory
+const htmlContent = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
 
 module.exports = async (req, res) => {
     // Set CORS headers

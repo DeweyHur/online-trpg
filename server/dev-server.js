@@ -40,8 +40,8 @@ async function testSupabaseConnection() {
     }
 }
 
-// Read the HTML file
-let htmlContent = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+// Read the HTML file from public directory
+let htmlContent = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
 
 const server = http.createServer(async (req, res) => {
     // Set CORS headers for all responses
@@ -66,32 +66,38 @@ const server = http.createServer(async (req, res) => {
             // Serve the main HTML file
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(htmlContent);
-        } else if (pathname === '/index-guest.html') {
-            // Serve the guest HTML file
-            const guestHtmlContent = fs.readFileSync(path.join(__dirname, 'index-guest.html'), 'utf8');
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(guestHtmlContent);
-        } else if (pathname === '/index-server.html') {
-            // Serve the server gateway HTML file
-            const serverHtmlContent = fs.readFileSync(path.join(__dirname, 'index-server.html'), 'utf8');
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(serverHtmlContent);
-        } else if (pathname === '/test-stats-simple.html') {
-            // Serve the test stats HTML file
-            const testHtmlContent = fs.readFileSync(path.join(__dirname, 'test-stats-simple.html'), 'utf8');
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(testHtmlContent);
+        } else if (pathname.endsWith('.html')) {
+            // Serve any HTML file from public
+            const filePath = path.join(__dirname, '..', 'public', pathname.substring(1));
+            if (fs.existsSync(filePath)) {
+                const content = fs.readFileSync(filePath, 'utf8');
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end(content);
+            } else {
+                res.writeHead(404);
+                res.end('File not found');
+            }
         } else if (pathname.startsWith('/api/')) {
             // Handle API requests
             await handleApiRequest(req, res, pathname, method);
         } else if (pathname.endsWith('.js') || pathname.endsWith('.css')) {
-            // Serve static files
-            const filePath = path.join(__dirname, pathname.substring(1));
+            // Serve static JS/CSS files from public
+            const filePath = path.join(__dirname, '..', 'public', pathname.substring(1));
             if (fs.existsSync(filePath)) {
                 const content = fs.readFileSync(filePath, 'utf8');
                 const contentType = pathname.endsWith('.js') ? 'application/javascript' : 'text/css';
                 res.writeHead(200, { 'Content-Type': contentType });
                 res.end(content);
+            } else {
+                res.writeHead(404);
+                res.end('File not found');
+            }
+        } else if (pathname.startsWith('/assets/')) {
+            // Optional: serve other static assets (images, etc.)
+            const filePath = path.join(__dirname, '..', 'public', pathname.substring(1));
+            if (fs.existsSync(filePath)) {
+                res.writeHead(200);
+                fs.createReadStream(filePath).pipe(res);
             } else {
                 res.writeHead(404);
                 res.end('File not found');
